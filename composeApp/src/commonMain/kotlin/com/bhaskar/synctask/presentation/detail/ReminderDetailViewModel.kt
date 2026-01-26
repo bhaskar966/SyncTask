@@ -17,16 +17,10 @@ class ReminderDetailViewModel(
     private val reminderRepository: ReminderRepository
 ) : ViewModel() {
 
-    private val reminderId: String = checkNotNull(savedStateHandle["reminderId"])
-    
     private val _state = MutableStateFlow(ReminderDetailState())
     val state = _state.asStateFlow()
 
-    init {
-        loadReminder()
-    }
-
-    private fun loadReminder() {
+    fun loadReminder(reminderId: String) {
         viewModelScope.launch {
             reminderRepository.getReminderById(reminderId).collect { reminder ->
                 _state.update { it.copy(reminder = reminder, isLoading = false) }
@@ -56,6 +50,10 @@ class ReminderDetailViewModel(
             }
             ReminderDetailEvent.OnEdit -> {
                 // Navigate to edit
+            }
+
+            is ReminderDetailEvent.OnLoadReminder -> {
+                loadReminder(event.reminderId)
             }
         }
     }

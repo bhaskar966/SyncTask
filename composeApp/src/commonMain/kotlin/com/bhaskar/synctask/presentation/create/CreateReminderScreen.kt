@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Repeat
@@ -27,7 +26,6 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -48,11 +46,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.bhaskar.synctask.domain.model.Priority
 import com.bhaskar.synctask.domain.model.RecurrenceRule
 import com.bhaskar.synctask.presentation.create.components.CreateReminderEvent
+import com.bhaskar.synctask.presentation.create.components.CreateReminderState
 import com.bhaskar.synctask.presentation.recurrence.RecurrenceModal
 import com.bhaskar.synctask.presentation.theme.Indigo500
 import kotlinx.datetime.Instant
@@ -68,9 +66,9 @@ fun CreateReminderScreen(
     onNavigateBack: () -> Unit,
     onNavigateToCustomRecurrence: () -> Unit,
     navController: NavController,
-    viewModel: CreateReminderViewModel = koinViewModel()
+    createReminderState: CreateReminderState,
+    onCreateReminderEvent: (CreateReminderEvent) -> Unit,
 ) {
-    val state by viewModel.state.collectAsState()
     var showRecurrenceModal by remember { mutableStateOf(false) }
 
     // Listen for custom recurrence result
@@ -83,7 +81,7 @@ fun CreateReminderScreen(
         recurrenceResultParam?.let { json ->
              try {
                  val rule = Json.decodeFromString(RecurrenceRule.serializer(), json)
-                 viewModel.onEvent(CreateReminderEvent.OnRecurrenceSelected(rule))
+                 onCreateReminderEvent(CreateReminderEvent.OnRecurrenceSelected(rule))
                  savedStateHandle?.remove<String>("recurrence_rule")
              } catch (e: Exception) {
                  // Handle serialization error, maybe log it
@@ -91,24 +89,24 @@ fun CreateReminderScreen(
         }
     }
 
-    if (state.showDatePicker) {
+    if (createReminderState.showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = Clock.System.now().toEpochMilliseconds()
         )
         DatePickerDialog(
-            onDismissRequest = { viewModel.onEvent(CreateReminderEvent.OnToggleDatePicker) },
+            onDismissRequest = { onCreateReminderEvent(CreateReminderEvent.OnToggleDatePicker) },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
                         val date = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.UTC).date
-                        viewModel.onEvent(CreateReminderEvent.OnDateSelected(date))
+                        onCreateReminderEvent(CreateReminderEvent.OnDateSelected(date))
                     }
                 }) {
                     Text("OK")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.onEvent(CreateReminderEvent.OnToggleDatePicker) }) {
+                TextButton(onClick = { onCreateReminderEvent(CreateReminderEvent.OnToggleDatePicker) }) {
                     Text("Cancel")
                 }
             }
@@ -121,14 +119,14 @@ fun CreateReminderScreen(
         RecurrenceModal(
             onDismissRequest = { showRecurrenceModal = false },
             onRecurrenceSelected = { rule ->
-                viewModel.onEvent(CreateReminderEvent.OnRecurrenceSelected(rule))
+                onCreateReminderEvent(CreateReminderEvent.OnRecurrenceSelected(rule))
                 showRecurrenceModal = false
             },
             onCustomSelected = {
                 showRecurrenceModal = false
                 onNavigateToCustomRecurrence()
             },
-            currentRule = state.recurrence
+            currentRule = createReminderState.recurrence
         )
     }
 
@@ -155,7 +153,7 @@ fun CreateReminderScreen(
             Box(modifier = Modifier.padding(16.dp)) {
                 Button(
                     onClick = { 
-                        viewModel.onEvent(CreateReminderEvent.OnSave)
+                        onCreateReminderEvent(CreateReminderEvent.OnSave)
                         onNavigateBack()
                     },
                     modifier = Modifier
@@ -179,8 +177,8 @@ fun CreateReminderScreen(
         ) {
             // Title
             TextField(
-                value = state.title,
-                onValueChange = { viewModel.onEvent(CreateReminderEvent.OnTitleChanged(it)) },
+                value = createReminderState.title,
+                onValueChange = { onCreateReminderEvent(CreateReminderEvent.OnTitleChanged(it)) },
                 placeholder = { Text("What needs to be done?", style = MaterialTheme.typography.headlineSmall.copy(color = Color.Gray)) },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
@@ -194,8 +192,8 @@ fun CreateReminderScreen(
             
             // Description
             TextField(
-                value = state.description,
-                onValueChange = { viewModel.onEvent(CreateReminderEvent.OnDescriptionChanged(it)) },
+                value = createReminderState.description,
+                onValueChange = { onCreateReminderEvent(CreateReminderEvent.OnDescriptionChanged(it)) },
                 placeholder = { Text("Add notes, URL, or details...") },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
@@ -213,15 +211,15 @@ fun CreateReminderScreen(
                 SelectionButton(
                     icon = Icons.Default.CalendarMonth,
                     label = "Date",
-                    value = state.date?.toString() ?: "Select",
-                    onClick = { viewModel.onEvent(CreateReminderEvent.OnToggleDatePicker) },
+                    value = createReminderState.date?.toString() ?: "Select",
+                    onClick = { onCreateReminderEvent(CreateReminderEvent.OnToggleDatePicker) },
                     modifier = Modifier.weight(1f)
                 )
                 SelectionButton(
                     icon = Icons.Default.AccessTime,
                     label = "Time",
-                    value = state.time?.toString() ?: "Select", // Format properly
-                    onClick = { viewModel.onEvent(CreateReminderEvent.OnToggleTimePicker) },
+                    value = createReminderState.time?.toString() ?: "Select", // Format properly
+                    onClick = { onCreateReminderEvent(CreateReminderEvent.OnToggleTimePicker) },
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -233,7 +231,7 @@ fun CreateReminderScreen(
                 SelectionButton(
                     icon = Icons.Default.Repeat,
                     label = "Repeat",
-                    value = if (state.recurrence == null) "Never" else "Repeating", // TODO: Format rule
+                    value = if (createReminderState.recurrence == null) "Never" else "Repeating", // TODO: Format rule
                     onClick = { showRecurrenceModal = true },
                     modifier = Modifier.weight(1f)
                 )
@@ -247,7 +245,7 @@ fun CreateReminderScreen(
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Priority.entries.forEach { priority ->
-                    val isSelected = state.priority == priority
+                    val isSelected = createReminderState.priority == priority
                     val color = if(isSelected) Indigo500 else Color.Transparent
                     val textColor = if(isSelected) Indigo500 else MaterialTheme.colorScheme.onSurface
                     val borderColor = if(isSelected) Indigo500.copy(alpha = 0.2f) else Color.Transparent
@@ -260,7 +258,7 @@ fun CreateReminderScreen(
                             .clip(RoundedCornerShape(8.dp))
                             .background(containerColor)
                             .border(1.dp, borderColor, RoundedCornerShape(8.dp))
-                            .clickable { viewModel.onEvent(CreateReminderEvent.OnPrioritySelected(priority)) },
+                            .clickable { onCreateReminderEvent(CreateReminderEvent.OnPrioritySelected(priority)) },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(

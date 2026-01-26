@@ -31,16 +31,25 @@ import com.bhaskar.synctask.presentation.theme.Indigo700
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import com.bhaskar.synctask.presentation.detail.component.ReminderDetailEvent
+import com.bhaskar.synctask.presentation.detail.component.ReminderDetailState
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun ReminderDetailScreen(
     onNavigateBack: () -> Unit,
-    viewModel: ReminderDetailViewModel = koinViewModel()
+    reminderId: String,
+    reminderDetailState: ReminderDetailState,
+    onReminderDetailEvent: (ReminderDetailEvent) -> Unit,
 ) {
-    val state by viewModel.state.collectAsState()
-    val reminder = state.reminder
+
+    LaunchedEffect(Unit) {
+        onReminderDetailEvent(ReminderDetailEvent.OnLoadReminder(reminderId))
+    }
+
+    val reminder = remember(reminderDetailState.reminder) { reminderDetailState.reminder }
 
     Scaffold(
         bottomBar = {
@@ -53,7 +62,7 @@ fun ReminderDetailScreen(
             ) {
                 // Simplified footer
                  Button(
-                    onClick = { viewModel.onEvent(ReminderDetailEvent.OnDelete); onNavigateBack() },
+                    onClick = { onReminderDetailEvent(ReminderDetailEvent.OnDelete); onNavigateBack() },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEF2F2), contentColor = Color(0xFFDC2626)), // Red-50, Red-600
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -64,7 +73,7 @@ fun ReminderDetailScreen(
             }
         }
     ) { paddingValues ->
-        if (state.isLoading) {
+        if (reminderDetailState.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }

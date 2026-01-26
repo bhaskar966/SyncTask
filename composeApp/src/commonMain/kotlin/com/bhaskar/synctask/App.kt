@@ -7,18 +7,27 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.bhaskar.synctask.domain.model.RecurrenceRule
 import com.bhaskar.synctask.presentation.list.ReminderListScreen
 import com.bhaskar.synctask.presentation.theme.SyncTaskTheme
 import com.bhaskar.synctask.presentation.create.CreateReminderScreen
+import com.bhaskar.synctask.presentation.create.CreateReminderViewModel
 import com.bhaskar.synctask.presentation.detail.ReminderDetailScreen
+import com.bhaskar.synctask.presentation.detail.ReminderDetailViewModel
+import com.bhaskar.synctask.presentation.list.ReminderListViewModel
 import com.bhaskar.synctask.presentation.recurrence.CustomRecurrenceScreen
+import com.bhaskar.synctask.presentation.recurrence.CustomRecurrenceViewModel
 import com.bhaskar.synctask.presentation.settings.SettingsScreen
+import com.bhaskar.synctask.presentation.utils.MainRoutes
 import kotlinx.serialization.json.Json
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun App() {
@@ -30,45 +39,68 @@ fun App() {
         ) {
             val navController = rememberNavController()
 
+            val createReminderViewModel: CreateReminderViewModel = koinViewModel()
+            val createReminderState by createReminderViewModel.state.collectAsState()
+
+            val reminderDetailViewModel: ReminderDetailViewModel = koinViewModel()
+            val reminderDetailState by reminderDetailViewModel.state.collectAsState()
+
+            val reminderListViewModel: ReminderListViewModel = koinViewModel()
+            val reminderListState by reminderListViewModel.state.collectAsState()
+
+            val customRecurrenceViewModel: CustomRecurrenceViewModel = koinViewModel()
+            val customRecurrenceState by customRecurrenceViewModel.state.collectAsState()
+
+
             NavHost(
                 navController = navController,
-                startDestination = "list",
+                startDestination = MainRoutes.ReminderListScreen,
                 modifier = Modifier
                     .windowInsetsPadding(WindowInsets.systemBars)
             ) {
-                composable("list") {
+                composable<MainRoutes.ReminderListScreen>() {
                     ReminderListScreen(
+                        reminderListState = reminderListState,
+                        onReminderScreenEvent = reminderListViewModel::onEvent,
                         onNavigateToCreate = {
-                            navController.navigate("create")
+                            navController.navigate(MainRoutes.CreateReminderScreen)
                         },
                         onNavigateToDetail = { reminderId ->
-                            navController.navigate("detail/$reminderId")
+                            navController.navigate(MainRoutes.ReminderDetailScreen(reminderId))
                         },
                         onNavigateToSettings = {
-                            navController.navigate("settings")
+                            navController.navigate(MainRoutes.SettingsScreen)
                         }
                     )
                 }
-                composable("create") {
+                composable<MainRoutes.CreateReminderScreen>() {
                     CreateReminderScreen(
+                        createReminderState = createReminderState,
+                        onCreateReminderEvent = createReminderViewModel::onEvent,
                         onNavigateBack = {
                             navController.popBackStack()
                         },
                         onNavigateToCustomRecurrence = {
-                            navController.navigate("custom_recurrence")
+                            navController.navigate(MainRoutes.CustomRecurrenceScreen)
                         },
                         navController = navController
                     )
                 }
-                composable("detail/{reminderId}") {
+                composable<MainRoutes.ReminderDetailScreen>() { navBackSTackEntry ->
+                    val reminderId = navBackSTackEntry.toRoute<MainRoutes.ReminderDetailScreen>().id
                     ReminderDetailScreen(
+                        reminderDetailState = reminderDetailState,
+                        onReminderDetailEvent = reminderDetailViewModel::onEvent,
+                        reminderId = reminderId,
                         onNavigateBack = {
                             navController.popBackStack()
                         }
                     )
                 }
-                composable("custom_recurrence") {
+                composable<MainRoutes.CustomRecurrenceScreen>() {
                     CustomRecurrenceScreen(
+                        customRecurrenceState = customRecurrenceState,
+                        onCustomRecurrenceEvent = customRecurrenceViewModel::onEvent,
                         onNavigateBack = {
                             navController.popBackStack()
                         },
@@ -82,7 +114,7 @@ fun App() {
                         }
                     )
                 }
-                composable("settings") {
+                composable<MainRoutes.SettingsScreen>() {
                     SettingsScreen(
                         onNavigateBack = {
                             navController.popBackStack()

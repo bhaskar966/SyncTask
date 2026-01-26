@@ -4,4 +4,6 @@ sealed class ReminderDetailEvent {
     data object OnToggleComplete : ReminderDetailEvent()
     data object OnDelete : ReminderDetailEvent()
     data object OnEdit : ReminderDetailEvent()
+
+    data class OnLoadReminder(val reminderId: String) : ReminderDetailEvent()
 }

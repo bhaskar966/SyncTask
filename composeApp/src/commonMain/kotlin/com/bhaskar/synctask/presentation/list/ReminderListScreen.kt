@@ -24,14 +24,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bhaskar.synctask.presentation.list.ui_components.ReminderCard
 import com.bhaskar.synctask.presentation.list.ui_components.SectionHeader
 import com.bhaskar.synctask.presentation.theme.Amber500
@@ -43,16 +41,16 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import com.bhaskar.synctask.presentation.list.components.ReminderListEvent
-import org.koin.compose.viewmodel.koinViewModel
+import com.bhaskar.synctask.presentation.list.components.ReminderListState
 
 @Composable
 fun ReminderListScreen(
     onNavigateToCreate: () -> Unit,
     onNavigateToDetail: (String) -> Unit,
     onNavigateToSettings: () -> Unit,
-    viewModel: ReminderListViewModel = koinViewModel()
+    reminderListState: ReminderListState,
+    onReminderScreenEvent: (ReminderListEvent) -> Unit,
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
 
     Scaffold(
         floatingActionButton = {
@@ -75,9 +73,9 @@ fun ReminderListScreen(
         ) {
             // Header Section
             HeaderSection(
-                syncDeviceCount = state.syncDeviceCount,
-                searchQuery = state.searchQuery,
-                onSearchQueryChanged = { viewModel.onEvent(ReminderListEvent.OnSearchQueryChanged(it)) },
+                syncDeviceCount = reminderListState.syncDeviceCount,
+                searchQuery = reminderListState.searchQuery,
+                onSearchQueryChanged = { onReminderScreenEvent(ReminderListEvent.OnSearchQueryChanged(it)) },
                 onNavigateToSettings = onNavigateToSettings
             )
 
@@ -89,72 +87,72 @@ fun ReminderListScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Overdue
-                if (state.overdueReminders.isNotEmpty()) {
+                if (reminderListState.overdueReminders.isNotEmpty()) {
                     item {
                         SectionHeader(
                             title = "Overdue",
-                            count = state.overdueReminders.size,
+                            count = reminderListState.overdueReminders.size,
                             color = Color(0xFFEF4444)
                         )
                     }
-                    items(state.overdueReminders) { reminder ->
+                    items(reminderListState.overdueReminders) { reminder ->
                         ReminderCard(
                             reminder = reminder,
-                            onCheckedChange = { viewModel.onEvent(ReminderListEvent.OnCompleteReminder(reminder.id)) },
+                            onCheckedChange = { onReminderScreenEvent(ReminderListEvent.OnCompleteReminder(reminder.id)) },
                             onClick = { onNavigateToDetail(reminder.id) }
                         )
                     }
                 }
 
                 // Today
-                if (state.todayReminders.isNotEmpty()) {
+                if (reminderListState .todayReminders.isNotEmpty()) {
                     item {
                         SectionHeader(
                             title = "Today",
-                            count = state.todayReminders.size,
+                            count = reminderListState .todayReminders.size,
                             color = Indigo500
                         )
                     }
-                    items(state.todayReminders) { reminder ->
+                    items(reminderListState   .todayReminders) { reminder ->
                         ReminderCard(
                             reminder = reminder,
-                            onCheckedChange = { viewModel.onEvent(ReminderListEvent.OnCompleteReminder(reminder.id)) },
+                            onCheckedChange = { onReminderScreenEvent(ReminderListEvent.OnCompleteReminder(reminder.id)) },
                             onClick = { onNavigateToDetail(reminder.id) }
                         )
                     }
                 }
                 
                 // Snoozed
-                if (state.snoozedReminders.isNotEmpty()) {
+                if (reminderListState .snoozedReminders.isNotEmpty()) {
                     item {
                         SectionHeader(
                             title = "Snoozed",
-                            count = state.snoozedReminders.size,
+                            count = reminderListState .snoozedReminders.size,
                             color = Amber500
                         )
                     }
-                    items(state.snoozedReminders) { reminder ->
+                    items(reminderListState   .snoozedReminders) { reminder ->
                         ReminderCard(
                             reminder = reminder,
-                            onCheckedChange = { viewModel.onEvent(ReminderListEvent.OnCompleteReminder(reminder.id)) },
+                            onCheckedChange = { onReminderScreenEvent(ReminderListEvent.OnCompleteReminder(reminder.id)) },
                             onClick = { onNavigateToDetail(reminder.id) }
                         )
                     }
                 }
 
                 // Later
-                if (state.laterReminders.isNotEmpty()) {
+                if (reminderListState .laterReminders.isNotEmpty()) {
                     item {
                         SectionHeader(
                             title = "Later",
-                            count = state.laterReminders.size,
+                            count = reminderListState .laterReminders.size,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    items(state.laterReminders) { reminder ->
+                    items(reminderListState   .laterReminders) { reminder ->
                          ReminderCard(
                             reminder = reminder,
-                            onCheckedChange = { viewModel.onEvent(ReminderListEvent.OnCompleteReminder(reminder.id)) },
+                            onCheckedChange = { onReminderScreenEvent(ReminderListEvent.OnCompleteReminder(reminder.id)) },
                             onClick = { onNavigateToDetail(reminder.id) }
                         )
                     }

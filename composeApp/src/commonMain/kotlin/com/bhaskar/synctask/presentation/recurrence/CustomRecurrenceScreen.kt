@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
@@ -54,9 +53,9 @@ import org.koin.compose.viewmodel.koinViewModel
 fun CustomRecurrenceScreen(
     onNavigateBack: () -> Unit,
     onRuleConfirmed: (RecurrenceRule) -> Unit,
-    viewModel: CustomRecurrenceViewModel = koinViewModel()
+    customRecurrenceState: CustomRecurrenceState,
+    onCustomRecurrenceEvent: (CustomRecurrenceEvent) -> Unit,
 ) {
-    val state by viewModel.state.collectAsState()
     var expandedFrequency by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -116,11 +115,11 @@ fun CustomRecurrenceScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    IconButton(onClick = { viewModel.onEvent(CustomRecurrenceEvent.OnIntervalChanged(state.interval - 1)) }) {
+                    IconButton(onClick = { onCustomRecurrenceEvent(CustomRecurrenceEvent.OnIntervalChanged(customRecurrenceState.interval - 1)) }) {
                         Icon(Icons.Default.Remove, null)
                     }
-                    Text(state.interval.toString(), fontWeight = FontWeight.Bold)
-                     IconButton(onClick = { viewModel.onEvent(CustomRecurrenceEvent.OnIntervalChanged(state.interval + 1)) }) {
+                    Text(customRecurrenceState.interval.toString(), fontWeight = FontWeight.Bold)
+                     IconButton(onClick = { onCustomRecurrenceEvent(CustomRecurrenceEvent.OnIntervalChanged(customRecurrenceState.interval + 1)) }) {
                         Icon(Icons.Default.Add, null)
                     }
                 }
@@ -143,7 +142,7 @@ fun CustomRecurrenceScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                          Text(
-                             state.frequency.name.lowercase().replaceFirstChar { it.uppercase() } + if(state.interval > 1) "s" else "",
+                             customRecurrenceState.frequency.name.lowercase().replaceFirstChar { it.uppercase() } + if(customRecurrenceState.interval > 1) "s" else "",
                              fontWeight = FontWeight.Medium
                          )
                          Icon(Icons.Default.ExpandMore, null)
@@ -156,7 +155,7 @@ fun CustomRecurrenceScreen(
                             DropdownMenuItem(
                                 text = { Text(frequency.name.lowercase().replaceFirstChar { it.uppercase() }) },
                                 onClick = {
-                                    viewModel.onEvent(CustomRecurrenceEvent.OnFrequencyChanged(frequency))
+                                    onCustomRecurrenceEvent(CustomRecurrenceEvent.OnFrequencyChanged(frequency))
                                     expandedFrequency = false
                                 }
                             )
@@ -168,7 +167,7 @@ fun CustomRecurrenceScreen(
             Spacer(modifier = Modifier.height(32.dp))
             
             // Days Section (Only if Weekly)
-            if (state.frequency == Frequency.WEEKLY) {
+            if (customRecurrenceState.frequency == Frequency.WEEKLY) {
                 Text(
                     "Repeats On",
                     style = MaterialTheme.typography.labelLarge,
@@ -183,11 +182,11 @@ fun CustomRecurrenceScreen(
                     val days = listOf("M", "T", "W", "T", "F", "S", "S")
                     // 1 = Monday, 7 = Sunday
                     (1..7).forEach { day ->
-                        val isSelected = state.selectedDays.contains(day)
+                        val isSelected = customRecurrenceState.selectedDays.contains(day)
                         DayButton(
                             label = days[day-1],
                             isSelected = isSelected,
-                            onClick = { viewModel.onEvent(CustomRecurrenceEvent.OnDayToggled(day)) }
+                            onClick = { onCustomRecurrenceEvent(CustomRecurrenceEvent.OnDayToggled(day)) }
                         )
                     }
                 }
