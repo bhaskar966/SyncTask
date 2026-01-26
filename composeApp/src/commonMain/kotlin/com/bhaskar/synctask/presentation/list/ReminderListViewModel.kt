@@ -17,9 +17,9 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
-import kotlinx.datetime.toLocalDateTime
-import kotlinx.datetime.Instant
+import com.bhaskar.synctask.presentation.utils.toLocalDateTime
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 class ReminderListViewModel(
     private val reminderRepository: ReminderRepository

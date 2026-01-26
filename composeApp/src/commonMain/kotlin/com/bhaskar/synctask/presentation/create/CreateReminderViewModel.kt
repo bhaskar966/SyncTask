@@ -9,10 +9,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.bhaskar.synctask.presentation.utils.toLocalDateTime
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 import kotlin.time.Clock
 
@@ -25,7 +25,7 @@ class CreateReminderViewModel(
 
     init {
         val now = Clock.System.now()
-        val datetime = kotlinx.datetime.Instant.fromEpochMilliseconds(now.toEpochMilliseconds()).toLocalDateTime(TimeZone.currentSystemDefault())
+        val datetime = now.toLocalDateTime(TimeZone.currentSystemDefault())
         _state.update { it.copy(date = datetime.date, time = datetime.time) }
     }
 
@@ -74,6 +74,9 @@ class CreateReminderViewModel(
             val time = state.time ?: return@launch // Or default
 
             val dateTime = LocalDateTime(date, time)
+            // We need to convert back to kotlin.time.Instant
+            // LocalDateTime.toInstant returns kotlinx.datetime.Instant.
+            // We can get epoch millis from that.
             val instant = dateTime.toInstant(TimeZone.currentSystemDefault())
             
             createReminderUseCase(

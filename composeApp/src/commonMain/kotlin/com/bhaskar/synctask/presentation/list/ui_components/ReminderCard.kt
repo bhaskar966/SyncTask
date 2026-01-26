@@ -37,9 +37,9 @@ import com.bhaskar.synctask.domain.model.Reminder
 import com.bhaskar.synctask.domain.model.ReminderStatus
 import com.bhaskar.synctask.presentation.theme.Amber500
 import com.bhaskar.synctask.presentation.theme.Indigo500
-import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import com.bhaskar.synctask.presentation.utils.toLocalDateTime
+import kotlin.time.Instant
 
 @Composable
 fun ReminderCard(
