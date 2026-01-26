@@ -1,0 +1,128 @@
+Reusing configuration cache.
+> Task :composeApp:preBuild UP-TO-DATE
+> Task :composeApp:convertXmlValueResourcesForAndroidDebug NO-SOURCE
+> Task :composeApp:copyNonXmlValueResourcesForAndroidMain NO-SOURCE
+> Task :composeApp:generateComposeResClass UP-TO-DATE
+> Task :composeApp:preDebugBuild UP-TO-DATE
+> Task :composeApp:generateExpectResourceCollectorsForCommonMain UP-TO-DATE
+> Task :composeApp:kmpPartiallyResolvedDependenciesChecker
+> Task :composeApp:convertXmlValueResourcesForAndroidMain NO-SOURCE
+> Task :composeApp:copyNonXmlValueResourcesForAndroidDebug NO-SOURCE
+> Task :composeApp:generateCommonMainSyncTaskDatabaseInterface UP-TO-DATE
+> Task :composeApp:copyNonXmlValueResourcesForCommonMain UP-TO-DATE
+> Task :composeApp:generateDebugResValues UP-TO-DATE
+> Task :composeApp:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :composeApp:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :composeApp:convertXmlValueResourcesForCommonMain NO-SOURCE
+> Task :composeApp:prepareComposeResourcesTaskForAndroidDebug NO-SOURCE
+> Task :composeApp:prepareComposeResourcesTaskForAndroidMain NO-SOURCE
+> Task :composeApp:extractDeepLinksDebug UP-TO-DATE
+> Task :composeApp:generateDebugResources UP-TO-DATE
+> Task :composeApp:generateResourceAccessorsForAndroidDebug NO-SOURCE
+> Task :composeApp:generateResourceAccessorsForAndroidMain NO-SOURCE
+> Task :composeApp:prepareComposeResourcesTaskForCommonMain UP-TO-DATE
+> Task :composeApp:generateResourceAccessorsForCommonMain UP-TO-DATE
+> Task :composeApp:copyDebugComposeResourcesToAndroidAssets UP-TO-DATE
+> Task :composeApp:generateActualResourceCollectorsForAndroidMain UP-TO-DATE
+> Task :composeApp:packageDebugResources UP-TO-DATE
+> Task :composeApp:parseDebugLocalResources UP-TO-DATE
+> Task :composeApp:mapDebugSourceSetPaths UP-TO-DATE
+> Task :composeApp:mergeDebugResources UP-TO-DATE
+> Task :composeApp:checkDebugAarMetadata UP-TO-DATE
+> Task :composeApp:processDebugMainManifest UP-TO-DATE
+> Task :composeApp:processDebugManifest UP-TO-DATE
+> Task :composeApp:processDebugManifestForPackage UP-TO-DATE
+> Task :composeApp:processDebugResources UP-TO-DATE
+
+> Task :composeApp:compileDebugKotlinAndroid FAILED
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/androidMain/kotlin/com/bhaskar/synctask/SyncTaskApplication.kt:12:18 Unresolved reference 'org.koin.core.context.KoinApplication'.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/androidMain/kotlin/com/bhaskar/synctask/SyncTaskApplication.kt:13:13 Unresolved reference 'org.koin.core.context.KoinApplication'.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/androidMain/kotlin/com/bhaskar/synctask/SyncTaskApplication.kt:14:13 Unresolved reference 'org.koin.core.context.KoinApplication'.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/androidMain/kotlin/com/bhaskar/synctask/data/PlatformContext.android.kt:5:18 The 'expect' and the 'actual' declarations are incompatible.
+  expect: public final expect class PlatformContext : Any
+  actual: public final actual typealias PlatformContext = Context
+  reason: the modalities are different ('final' vs 'abstract')
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/androidMain/kotlin/com/bhaskar/synctask/domain/UUID.android.kt:5:1 'actual fun generateUUID(): String' has several compatible expect declarations in modules [module <commonMain>, module <commonMain>].
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/App.kt:13:30 Unresolved reference 'ui'.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/App.kt:17:2 Unresolved reference 'Preview'.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:22:36 Unresolved reference 'reminderEntityQueries'.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:42:14 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:43:14 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:44:14 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:44:20 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:44:41 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:44:41 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:44:45 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:50:14 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:51:14 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:52:14 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:52:20 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:52:41 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:52:41 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:52:45 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:57:14 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:58:14 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:59:14 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:59:18 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:59:23 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:125:59 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:125:59 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:125:65 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:136:59 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:136:59 Cannot infer type for type parameter 'R'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:136:65 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:150:28 Cannot infer type for value parameter 'entity'. Specify it explicitly.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:152:37 Suspension functions can only be called within coroutine body.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:153:55 Unresolved reference 'id'.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/data/ReminderRepositoryImpl.kt:156:51 Unresolved reference 'id'.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/di/Modules.kt:38:5 None of the following candidates is applicable:
+
+fun <reified R> Module.singleOf(crossinline constructor: () -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1> Module.singleOf(crossinline constructor: (T1) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2> Module.singleOf(crossinline constructor: (T1, T2) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3> Module.singleOf(crossinline constructor: (T1, T2, T3) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4> Module.singleOf(crossinline constructor: (T1, T2, T3, T4) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6, T7) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, reified T8> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6, T7, T8) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, reified T8, reified T9> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6, T7, T8, T9) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, reified T8, reified T9, reified T10> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, reified T8, reified T9, reified T10, reified T11> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, reified T8, reified T9, reified T10, reified T11, reified T12> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, reified T8, reified T9, reified T10, reified T11, reified T12, reified T13> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, reified T8, reified T9, reified T10, reified T11, reified T12, reified T13, reified T14> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, reified T8, reified T9, reified T10, reified T11, reified T12, reified T13, reified T14, reified T15> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, reified T8, reified T9, reified T10, reified T11, reified T12, reified T13, reified T14, reified T15, reified T16> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, reified T8, reified T9, reified T10, reified T11, reified T12, reified T13, reified T14, reified T15, reified T16, reified T17> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, reified T8, reified T9, reified T10, reified T11, reified T12, reified T13, reified T14, reified T15, reified T16, reified T17, reified T18> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, reified T8, reified T9, reified T10, reified T11, reified T12, reified T13, reified T14, reified T15, reified T16, reified T17, reified T18, reified T19> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, reified T8, reified T9, reified T10, reified T11, reified T12, reified T13, reified T14, reified T15, reified T16, reified T17, reified T18, reified T19, reified T20> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, reified T8, reified T9, reified T10, reified T11, reified T12, reified T13, reified T14, reified T15, reified T16, reified T17, reified T18, reified T19, reified T20, reified T21> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+fun <reified R, reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, reified T8, reified T9, reified T10, reified T11, reified T12, reified T13, reified T14, reified T15, reified T16, reified T17, reified T18, reified T19, reified T20, reified T21, reified T22> Module.singleOf(crossinline constructor: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22) -> R, noinline options: (BeanDefinition<R>.() -> Unit)? = ...): KoinDefinition<R>
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/di/Modules.kt:38:16 Unresolved reference 'FirestoreDataSource'.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/di/Modules.kt:46:45 Unresolved reference 'KoinApplication'.
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/domain/CreateReminderUseCase.kt:32:9 Overload resolution ambiguity between candidates:
+expect fun generateUUID(): String
+expect fun generateUUID(): String
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/domain/CreateReminderUseCase.kt:35:8 Conflicting overloads:
+expect fun generateUUID(): String
+e: file:///Users/bhaskardey/AndroidStudioProjects/SyncTask/composeApp/src/commonMain/kotlin/com/bhaskar/synctask/domain/UUID.kt:3:8 Conflicting overloads:
+expect fun generateUUID(): String
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':composeApp:compileDebugKotlinAndroid'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 2s
+23 actionable tasks: 2 executed, 21 up-to-date
+Configuration cache entry reused.
