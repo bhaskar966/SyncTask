@@ -45,6 +45,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bhaskar.synctask.domain.model.RecurrenceRule
+import com.bhaskar.synctask.presentation.recurrence.components.CustomRecurrenceEvent
+import com.bhaskar.synctask.presentation.recurrence.components.CustomRecurrenceState
+import com.bhaskar.synctask.presentation.recurrence.components.Frequency
 import com.bhaskar.synctask.presentation.theme.Indigo500
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -74,8 +77,9 @@ fun CustomRecurrenceScreen(
             Box(Modifier.padding(16.dp)) {
                 Button(
                     onClick = {
-                        val rule = viewModel.getRecurrenceRule()
-                        onRuleConfirmed(rule)
+                        onCustomRecurrenceEvent(CustomRecurrenceEvent.OnSetRecurrenceRule)
+                        val rule = customRecurrenceState.recurrenceRule
+                        if (rule != null) onRuleConfirmed(rule)
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(12.dp),

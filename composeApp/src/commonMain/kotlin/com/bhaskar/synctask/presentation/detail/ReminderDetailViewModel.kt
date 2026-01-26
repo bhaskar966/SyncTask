@@ -13,24 +13,23 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class ReminderDetailViewModel(
-    savedStateHandle: SavedStateHandle,
     private val reminderRepository: ReminderRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ReminderDetailState())
     val state = _state.asStateFlow()
 
-    fun loadReminder(reminderId: String) {
+    init {
         viewModelScope.launch {
-            reminderRepository.getReminderById(reminderId).collect { reminder ->
-                _state.update { it.copy(reminder = reminder, isLoading = false) }
+            reminderRepository.getReminders().collect { reminders ->
+                _state.update { it.copy(allReminders = reminders) }
             }
         }
     }
 
     fun onEvent(event: ReminderDetailEvent) {
         val currentReminder = _state.value.reminder ?: return
-        
+
         when (event) {
             ReminderDetailEvent.OnToggleComplete -> {
                 viewModelScope.launch {
@@ -50,10 +49,6 @@ class ReminderDetailViewModel(
             }
             ReminderDetailEvent.OnEdit -> {
                 // Navigate to edit
-            }
-
-            is ReminderDetailEvent.OnLoadReminder -> {
-                loadReminder(event.reminderId)
             }
         }
     }

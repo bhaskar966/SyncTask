@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -88,6 +89,10 @@ fun App() {
                 }
                 composable<MainRoutes.ReminderDetailScreen>() { navBackSTackEntry ->
                     val reminderId = navBackSTackEntry.toRoute<MainRoutes.ReminderDetailScreen>().id
+                    LaunchedEffect(true) {
+                        println("Loading reminder with ID: $reminderId")
+                        println("is reminder there(navigation): ${reminderDetailState.allReminders.any { it.id == reminderId }}")
+                    }
                     ReminderDetailScreen(
                         reminderDetailState = reminderDetailState,
                         onReminderDetailEvent = reminderDetailViewModel::onEvent,

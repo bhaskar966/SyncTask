@@ -31,6 +31,8 @@ import com.bhaskar.synctask.presentation.theme.Indigo700
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import com.bhaskar.synctask.presentation.detail.component.ReminderDetailEvent
@@ -45,11 +47,11 @@ fun ReminderDetailScreen(
     onReminderDetailEvent: (ReminderDetailEvent) -> Unit,
 ) {
 
-    LaunchedEffect(Unit) {
-        onReminderDetailEvent(ReminderDetailEvent.OnLoadReminder(reminderId))
-    }
+    val reminder = reminderDetailState.allReminders.find { it.id == reminderId }
 
-    val reminder = remember(reminderDetailState.reminder) { reminderDetailState.reminder }
+    LaunchedEffect(true) {
+        println("is reminder there(ReminderScreen): ${reminderDetailState.allReminders.any { it.id == reminderId }}")
+    }
 
     Scaffold(
         bottomBar = {
@@ -73,11 +75,11 @@ fun ReminderDetailScreen(
             }
         }
     ) { paddingValues ->
-        if (reminderDetailState.isLoading) {
+        if (reminder == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
-        } else if (reminder != null) {
+        } else {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -102,7 +104,7 @@ fun ReminderDetailScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 }
-                
+
                 // Content overlapping
                 Column(
                     modifier = Modifier
@@ -111,9 +113,9 @@ fun ReminderDetailScreen(
                         .offset(y = (-60).dp)
                 ) {
                      // Main Card
-                     androidx.compose.material3.Card(
-                         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                         elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 8.dp),
+                     Card(
+                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                          modifier = Modifier.fillMaxWidth()
                      ) {
                          Column(Modifier.padding(24.dp)) {
@@ -122,10 +124,6 @@ fun ReminderDetailScreen(
                          }
                      }
                 }
-            }
-        } else {
-             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Reminder not found")
             }
         }
     }

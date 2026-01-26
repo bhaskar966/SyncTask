@@ -12,7 +12,7 @@ interface ReminderDao {
     fun getAllReminders(userId: String): Flow<List<ReminderEntity>>
 
     @Query("SELECT * FROM ReminderEntity WHERE id = :id")
-    suspend fun getReminderById(id: String): ReminderEntity?
+    fun getReminderById(id: String): Flow<ReminderEntity?>
 
     @Query("SELECT * FROM ReminderEntity WHERE userId = :userId AND status = 'ACTIVE' ORDER BY dueTime ASC")
     fun getActiveReminders(userId: String): Flow<List<ReminderEntity>>
