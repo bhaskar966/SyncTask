@@ -1,5 +1,6 @@
 package com.bhaskar.synctask
 
+import ReminderDetailScreen
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBars
@@ -20,7 +21,6 @@ import com.bhaskar.synctask.presentation.list.ReminderListScreen
 import com.bhaskar.synctask.presentation.theme.SyncTaskTheme
 import com.bhaskar.synctask.presentation.create.CreateReminderScreen
 import com.bhaskar.synctask.presentation.create.CreateReminderViewModel
-import com.bhaskar.synctask.presentation.detail.ReminderDetailScreen
 import com.bhaskar.synctask.presentation.detail.ReminderDetailViewModel
 import com.bhaskar.synctask.presentation.list.ReminderListViewModel
 import com.bhaskar.synctask.presentation.recurrence.CustomRecurrenceScreen
@@ -64,7 +64,7 @@ fun App() {
                         reminderListState = reminderListState,
                         onReminderScreenEvent = reminderListViewModel::onEvent,
                         onNavigateToCreate = {
-                            navController.navigate(MainRoutes.CreateReminderScreen)
+                            navController.navigate(MainRoutes.CreateReminderScreen())
                         },
                         onNavigateToDetail = { reminderId ->
                             navController.navigate(MainRoutes.ReminderDetailScreen(reminderId))
@@ -74,7 +74,18 @@ fun App() {
                         }
                     )
                 }
-                composable<MainRoutes.CreateReminderScreen>() {
+                composable<MainRoutes.CreateReminderScreen> { backStackEntry ->
+                    val args = backStackEntry.toRoute<MainRoutes.CreateReminderScreen>()
+                    val reminderId = args.id
+                    
+                    LaunchedEffect(reminderId) {
+                        if (reminderId != null) {
+                            createReminderViewModel.loadReminder(reminderId)
+                        } else {
+                            createReminderViewModel.resetState()
+                        }
+                    }
+
                     CreateReminderScreen(
                         createReminderState = createReminderState,
                         onCreateReminderEvent = createReminderViewModel::onEvent,
@@ -99,6 +110,9 @@ fun App() {
                         reminderId = reminderId,
                         onNavigateBack = {
                             navController.popBackStack()
+                        },
+                        onNavigateToEdit = { id ->
+                            navController.navigate(MainRoutes.CreateReminderScreen(id = id))
                         }
                     )
                 }

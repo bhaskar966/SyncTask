@@ -43,6 +43,7 @@ data class CreateReminderState(
     val recurrenceText: String = "Never",
 
     // UI State
+    val isEditing: Boolean = false,
     val isSaving: Boolean = false,
     val validationError: String? = null,
 )

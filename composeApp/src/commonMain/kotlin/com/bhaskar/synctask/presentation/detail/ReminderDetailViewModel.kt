@@ -1,6 +1,5 @@
 package com.bhaskar.synctask.presentation.detail
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bhaskar.synctask.domain.ReminderRepository
@@ -11,6 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 class ReminderDetailViewModel(
     private val reminderRepository: ReminderRepository
@@ -28,26 +29,28 @@ class ReminderDetailViewModel(
     }
 
     fun onEvent(event: ReminderDetailEvent) {
-        val currentReminder = _state.value.reminder ?: return
+        println("ReminderDetailViewModel: Received event: $event")
+        val currentReminder = _state.value.reminder
 
         when (event) {
-            ReminderDetailEvent.OnToggleComplete -> {
+            is ReminderDetailEvent.OnToggleComplete -> {
+                if (currentReminder == null) return
                 viewModelScope.launch {
                     if (currentReminder.status == ReminderStatus.COMPLETED) {
-                        // Mark active (revert) - logic not strictly in repo interface yet, assume update
                         reminderRepository.updateReminder(currentReminder.copy(status = ReminderStatus.ACTIVE, completedAt = null))
                     } else {
                         reminderRepository.completeReminder(currentReminder.id)
                     }
                 }
             }
-            ReminderDetailEvent.OnDelete -> {
+            is ReminderDetailEvent.OnDelete -> {
                 viewModelScope.launch {
-                    reminderRepository.deleteReminder(currentReminder.id)
-                    // Navigate back handled by UI observing null reminder or side effect
+                    withContext(NonCancellable) {
+                        reminderRepository.deleteReminder(event.reminderId)
+                    }
                 }
             }
-            ReminderDetailEvent.OnEdit -> {
+            is ReminderDetailEvent.OnEdit -> {
                 // Navigate to edit
             }
         }

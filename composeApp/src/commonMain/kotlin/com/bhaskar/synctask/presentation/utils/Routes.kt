@@ -8,7 +8,7 @@ sealed class MainRoutes {
     data object ReminderListScreen: MainRoutes()
 
     @Serializable
-    data object CreateReminderScreen: MainRoutes()
+    data class CreateReminderScreen(val id: String? = null): MainRoutes()
 
     @Serializable
     data class ReminderDetailScreen(val id: String): MainRoutes()

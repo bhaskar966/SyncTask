@@ -140,7 +140,7 @@ fun CreateReminderScreen(
                     Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text(
-                    "New Reminder",
+                    if (createReminderState.isEditing) "Edit Reminder" else "New Reminder",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 )
                 TextButton(onClick = { 
@@ -149,7 +149,7 @@ fun CreateReminderScreen(
                          if (createReminderState.title.isNotBlank()) onNavigateBack()
                      }
                 }) {
-                    Text("Save", fontWeight = FontWeight.SemiBold, color = Indigo500)
+                    Text(if (createReminderState.isEditing) "Update" else "Save", fontWeight = FontWeight.SemiBold, color = Indigo500)
                 }
             }
         },
