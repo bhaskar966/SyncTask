@@ -5,6 +5,7 @@ import com.bhaskar.synctask.data.FirestoreDataSource
 import com.bhaskar.synctask.data.ReminderRepositoryImpl
 import com.bhaskar.synctask.db.SyncTaskDatabase
 import com.bhaskar.synctask.domain.CreateReminderUseCase
+import com.bhaskar.synctask.domain.CompleteReminderUseCase
 import com.bhaskar.synctask.domain.ReminderRepository
 import com.bhaskar.synctask.presentation.list.ReminderListViewModel
 import com.bhaskar.synctask.presentation.create.CreateReminderViewModel
@@ -42,6 +43,7 @@ val dataModule = module {
 
 val domainModule = module {
     factoryOf(::CreateReminderUseCase)
+    factoryOf(::CompleteReminderUseCase)
     viewModelOf(::ReminderListViewModel)
     viewModelOf(::CreateReminderViewModel)
     viewModelOf(::ReminderDetailViewModel)

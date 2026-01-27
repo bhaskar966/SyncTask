@@ -20,9 +20,11 @@ import kotlinx.datetime.plus
 import com.bhaskar.synctask.presentation.utils.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
+import com.bhaskar.synctask.domain.CompleteReminderUseCase
 
 class ReminderListViewModel(
-    private val reminderRepository: ReminderRepository
+    private val reminderRepository: ReminderRepository,
+    private val completeReminderUseCase: CompleteReminderUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ReminderListState())
@@ -46,7 +48,7 @@ class ReminderListViewModel(
             }
             is ReminderListEvent.OnCompleteReminder -> {
                 viewModelScope.launch {
-                    reminderRepository.completeReminder(event.id)
+                    completeReminderUseCase(event.id)
                 }
             }
             is ReminderListEvent.OnDeleteReminder -> {

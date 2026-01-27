@@ -8,24 +8,43 @@ import com.bhaskar.synctask.domain.model.ReminderStatus
 
 fun ReminderEntity.toDomain(): Reminder {
     val recurrence = if (recurrenceType != null) {
+        val commonCount = recurrenceCount
+        val commonFromCompletion = recurrenceFromCompletion ?: false
+
         when (recurrenceType) {
             "DAILY" -> RecurrenceRule.Daily(
                 interval = recurrenceInterval ?: 1,
-                endDate = recurrenceEndDate
+                endDate = recurrenceEndDate,
+                occurrenceCount = commonCount,
+                fromCompletion = commonFromCompletion
             )
             "WEEKLY" -> RecurrenceRule.Weekly(
                 interval = recurrenceInterval ?: 1,
                 daysOfWeek = recurrenceDaysOfWeek?.split(",")?.mapNotNull { it.toIntOrNull() } ?: emptyList(),
-                endDate = recurrenceEndDate
+                endDate = recurrenceEndDate,
+                occurrenceCount = commonCount,
+                fromCompletion = commonFromCompletion
             )
             "MONTHLY" -> RecurrenceRule.Monthly(
                 interval = recurrenceInterval ?: 1,
                 dayOfMonth = recurrenceDayOfMonth ?: 1,
-                endDate = recurrenceEndDate
+                endDate = recurrenceEndDate,
+                occurrenceCount = commonCount,
+                fromCompletion = commonFromCompletion
+            )
+            "YEARLY" -> RecurrenceRule.Yearly(
+                interval = recurrenceInterval ?: 1,
+                month = recurrenceMonth ?: 1,
+                dayOfMonth = recurrenceDayOfMonth ?: 1,
+                endDate = recurrenceEndDate,
+                occurrenceCount = commonCount,
+                fromCompletion = commonFromCompletion
             )
             "CUSTOM_DAYS" -> RecurrenceRule.CustomDays(
                 interval = recurrenceInterval ?: 1,
-                endDate = recurrenceEndDate
+                endDate = recurrenceEndDate,
+                occurrenceCount = commonCount,
+                fromCompletion = commonFromCompletion
             )
             else -> null
         }
@@ -37,6 +56,10 @@ fun ReminderEntity.toDomain(): Reminder {
         title = title,
         description = description,
         dueTime = dueTime,
+        deadline = deadline,
+        reminderTime = reminderTime,
+        targetRemindCount = targetRemindCount,
+        currentReminderCount = currentReminderCount,
         status = ReminderStatus.valueOf(status),
         priority = Priority.valueOf(priority),
         recurrence = recurrence,
@@ -54,32 +77,38 @@ fun Reminder.toEntity(): ReminderEntity {
     var recInterval: Int? = null
     var recDays: String? = null
     var recDayOfMonth: Int? = null
+    var recMonth: Int? = null
     var recEndDate: Long? = null
+    var recCount: Int? = null
+    var recFromCompletion: Boolean? = null
 
-    when (recurrence) {
-        is RecurrenceRule.Daily -> {
-            recType = "DAILY"
-            recInterval = recurrence.interval
-            recEndDate = recurrence.endDate
+    if (recurrence != null) {
+        recInterval = recurrence.interval
+        recEndDate = recurrence.endDate
+        recCount = recurrence.occurrenceCount
+        recFromCompletion = recurrence.fromCompletion
+
+        when (recurrence) {
+            is RecurrenceRule.Daily -> {
+                recType = "DAILY"
+            }
+            is RecurrenceRule.Weekly -> {
+                recType = "WEEKLY"
+                recDays = recurrence.daysOfWeek.joinToString(",")
+            }
+            is RecurrenceRule.Monthly -> {
+                recType = "MONTHLY"
+                recDayOfMonth = recurrence.dayOfMonth
+            }
+            is RecurrenceRule.Yearly -> {
+                recType = "YEARLY"
+                recMonth = recurrence.month
+                recDayOfMonth = recurrence.dayOfMonth
+            }
+            is RecurrenceRule.CustomDays -> {
+                recType = "CUSTOM_DAYS"
+            }
         }
-        is RecurrenceRule.Weekly -> {
-            recType = "WEEKLY"
-            recInterval = recurrence.interval
-            recDays = recurrence.daysOfWeek.joinToString(",")
-            recEndDate = recurrence.endDate
-        }
-        is RecurrenceRule.Monthly -> {
-            recType = "MONTHLY"
-            recInterval = recurrence.interval
-            recDayOfMonth = recurrence.dayOfMonth
-            recEndDate = recurrence.endDate
-        }
-        is RecurrenceRule.CustomDays -> {
-            recType = "CUSTOM_DAYS"
-            recInterval = recurrence.interval
-            recEndDate = recurrence.endDate
-        }
-        null -> {}
     }
 
     return ReminderEntity(
@@ -88,13 +117,20 @@ fun Reminder.toEntity(): ReminderEntity {
         title = title,
         description = description,
         dueTime = dueTime,
+        deadline = deadline,
+        reminderTime = reminderTime,
         status = status.name,
         priority = priority.name,
         recurrenceType = recType,
         recurrenceInterval = recInterval,
         recurrenceDaysOfWeek = recDays,
         recurrenceDayOfMonth = recDayOfMonth,
+        recurrenceMonth = recMonth,
         recurrenceEndDate = recEndDate,
+        recurrenceCount = recCount,
+        recurrenceFromCompletion = recFromCompletion,
+        targetRemindCount = targetRemindCount,
+        currentReminderCount = currentReminderCount,
         snoozeUntil = snoozeUntil,
         createdAt = createdAt,
         lastModified = lastModified,

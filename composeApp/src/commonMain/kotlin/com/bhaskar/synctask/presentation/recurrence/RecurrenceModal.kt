@@ -33,10 +33,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bhaskar.synctask.domain.model.RecurrenceRule
 import com.bhaskar.synctask.presentation.theme.Indigo500
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.isoDayNumber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecurrenceModal(
+    startDate: LocalDate,
     onDismissRequest: () -> Unit,
     onRecurrenceSelected: (RecurrenceRule?) -> Unit,
     onCustomSelected: () -> Unit,
@@ -73,24 +76,23 @@ fun RecurrenceModal(
             )
 
             // Weekly
+            val dayOfWeekName = startDate.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
             RecurrenceOption(
                 icon = Icons.Filled.CalendarViewWeek,
-                label = "Weekly",
+                label = "Weekly on $dayOfWeekName",
                 isSelected = currentRule is RecurrenceRule.Weekly && currentRule.interval == 1,
                 onClick = { 
-                    // Default to current day logic would go here, hardcoding Mon for now
-                    onRecurrenceSelected(RecurrenceRule.Weekly(1, listOf(1))) 
+                    onRecurrenceSelected(RecurrenceRule.Weekly(1, listOf(startDate.dayOfWeek.isoDayNumber))) 
                 }
             )
 
             // Monthly
             RecurrenceOption(
                 icon = Icons.Filled.CalendarMonth,
-                label = "Monthly",
+                label = "Monthly on day ${startDate.day}",
                 isSelected = currentRule is RecurrenceRule.Monthly && currentRule.interval == 1,
                 onClick = { 
-                    // Default to today
-                     onRecurrenceSelected(RecurrenceRule.Monthly(1, 1))
+                     onRecurrenceSelected(RecurrenceRule.Monthly(1, startDate.day))
                 }
             )
 

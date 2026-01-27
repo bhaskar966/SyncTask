@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "9bdebb342f735e0afb9a6d4f782c0d77",
+    "identityHash": "e8c5afd4bb4af0859acb03cd14a234ab",
     "entities": [
       {
         "tableName": "ReminderEntity",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT, `dueTime` INTEGER NOT NULL, `status` TEXT NOT NULL, `priority` TEXT NOT NULL, `recurrenceType` TEXT, `recurrenceInterval` INTEGER, `recurrenceDaysOfWeek` TEXT, `recurrenceDayOfMonth` INTEGER, `recurrenceEndDate` INTEGER, `snoozeUntil` INTEGER, `createdAt` INTEGER NOT NULL, `lastModified` INTEGER NOT NULL, `completedAt` INTEGER, `deviceId` TEXT, `isSynced` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT, `dueTime` INTEGER NOT NULL, `deadline` INTEGER, `reminderTime` INTEGER, `status` TEXT NOT NULL, `priority` TEXT NOT NULL, `recurrenceType` TEXT, `recurrenceInterval` INTEGER, `recurrenceDaysOfWeek` TEXT, `recurrenceDayOfMonth` INTEGER, `recurrenceMonth` INTEGER, `recurrenceEndDate` INTEGER, `recurrenceCount` INTEGER, `recurrenceFromCompletion` INTEGER, `targetRemindCount` INTEGER, `currentReminderCount` INTEGER, `snoozeUntil` INTEGER, `createdAt` INTEGER NOT NULL, `lastModified` INTEGER NOT NULL, `completedAt` INTEGER, `deviceId` TEXT, `isSynced` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -36,6 +36,16 @@
             "columnName": "dueTime",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "deadline",
+            "columnName": "deadline",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "reminderTime",
+            "columnName": "reminderTime",
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "status",
@@ -70,8 +80,33 @@
             "affinity": "INTEGER"
           },
           {
+            "fieldPath": "recurrenceMonth",
+            "columnName": "recurrenceMonth",
+            "affinity": "INTEGER"
+          },
+          {
             "fieldPath": "recurrenceEndDate",
             "columnName": "recurrenceEndDate",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "recurrenceCount",
+            "columnName": "recurrenceCount",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "recurrenceFromCompletion",
+            "columnName": "recurrenceFromCompletion",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "targetRemindCount",
+            "columnName": "targetRemindCount",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "currentReminderCount",
+            "columnName": "currentReminderCount",
             "affinity": "INTEGER"
           },
           {
@@ -196,7 +231,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9bdebb342f735e0afb9a6d4f782c0d77')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e8c5afd4bb4af0859acb03cd14a234ab')"
     ]
   }
 }

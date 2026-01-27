@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import com.bhaskar.synctask.domain.model.RecurrenceRule
 import com.bhaskar.synctask.presentation.recurrence.components.CustomRecurrenceEvent
 import com.bhaskar.synctask.presentation.recurrence.components.CustomRecurrenceState
+import com.bhaskar.synctask.presentation.recurrence.components.EndMode
 import com.bhaskar.synctask.presentation.recurrence.components.Frequency
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,6 +35,18 @@ class CustomRecurrenceViewModel : ViewModel() {
                     it.copy(selectedDays = currentDays)
                 }
             }
+            is CustomRecurrenceEvent.OnFromCompletionToggled -> {
+                _state.update { it.copy(fromCompletion = event.enabled) }
+            }
+            is CustomRecurrenceEvent.OnEndModeChanged -> {
+                _state.update { it.copy(endMode = event.mode) }
+            }
+            is CustomRecurrenceEvent.OnEndDateChanged -> {
+                _state.update { it.copy(endDate = event.dateMillis) }
+            }
+            is CustomRecurrenceEvent.OnOccurrenceCountChanged -> {
+                _state.update { it.copy(occurrenceCount = event.count) }
+            }
             CustomRecurrenceEvent.OnApply -> {
                 // Logic to build rule handled by UI callback calling getRule()?
                 // Or expose a one-time event/flow
@@ -45,11 +58,38 @@ class CustomRecurrenceViewModel : ViewModel() {
 
     fun setRecurrenceRule() {
         val s = _state.value
-        val rule =  when (s.frequency) {
-            Frequency.DAILY -> RecurrenceRule.Daily(s.interval, s.endDate)
-            Frequency.WEEKLY -> RecurrenceRule.Weekly(s.interval, s.selectedDays.toList().sorted(), s.endDate)
-            Frequency.MONTHLY -> RecurrenceRule.Monthly(s.interval, dayOfMonth = 1, endDate = s.endDate) // Simplified
-            Frequency.YEARLY -> RecurrenceRule.Daily(s.interval * 365, s.endDate) // Fallback or implement Yearly
+        val endDate = if (s.endMode == EndMode.DATE) s.endDate else null
+        val count = if (s.endMode == EndMode.COUNT) s.occurrenceCount else null
+        
+        val rule = when (s.frequency) {
+            Frequency.DAILY -> RecurrenceRule.Daily(
+                interval = s.interval,
+                endDate = endDate,
+                occurrenceCount = count,
+                fromCompletion = s.fromCompletion
+            )
+            Frequency.WEEKLY -> RecurrenceRule.Weekly(
+                interval = s.interval,
+                daysOfWeek = s.selectedDays.toList().sorted(),
+                endDate = endDate,
+                occurrenceCount = count,
+                fromCompletion = s.fromCompletion
+            )
+            Frequency.MONTHLY -> RecurrenceRule.Monthly(
+                interval = s.interval,
+                dayOfMonth = 1, // TODO: Should match start date or be selectable
+                endDate = endDate,
+                occurrenceCount = count,
+                fromCompletion = s.fromCompletion
+            )
+            Frequency.YEARLY -> RecurrenceRule.Yearly(
+                interval = s.interval,
+                month = 1, // TODO: Should match start date
+                dayOfMonth = 1,
+                endDate = endDate,
+                occurrenceCount = count,
+                fromCompletion = s.fromCompletion
+            )
         }
         _state.update {
             it.copy(

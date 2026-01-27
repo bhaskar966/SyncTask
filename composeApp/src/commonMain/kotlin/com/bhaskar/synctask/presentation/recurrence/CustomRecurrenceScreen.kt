@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -47,8 +50,21 @@ import androidx.compose.ui.unit.dp
 import com.bhaskar.synctask.domain.model.RecurrenceRule
 import com.bhaskar.synctask.presentation.recurrence.components.CustomRecurrenceEvent
 import com.bhaskar.synctask.presentation.recurrence.components.CustomRecurrenceState
+import com.bhaskar.synctask.presentation.recurrence.components.EndMode
 import com.bhaskar.synctask.presentation.recurrence.components.Frequency
+import com.bhaskar.synctask.presentation.recurrence.components.toRecurrenceRule
 import com.bhaskar.synctask.presentation.theme.Indigo500
+import com.bhaskar.synctask.presentation.create.components.ui_components.DatePickerModal
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,6 +76,19 @@ fun CustomRecurrenceScreen(
     onCustomRecurrenceEvent: (CustomRecurrenceEvent) -> Unit,
 ) {
     var expandedFrequency by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    if (showDatePicker) {
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        DatePickerModal(
+            selectedDate = customRecurrenceState.endDate?.let { Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault()).date } ?: today,
+            onDateSelected = { 
+                onCustomRecurrenceEvent(CustomRecurrenceEvent.OnEndDateChanged(it.atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds()))
+                showDatePicker = false
+            },
+            onDismiss = { showDatePicker = false }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -77,9 +106,8 @@ fun CustomRecurrenceScreen(
             Box(Modifier.padding(16.dp)) {
                 Button(
                     onClick = {
-                        onCustomRecurrenceEvent(CustomRecurrenceEvent.OnSetRecurrenceRule)
-                        val rule = customRecurrenceState.recurrenceRule
-                        if (rule != null) onRuleConfirmed(rule)
+                        val rule = customRecurrenceState.toRecurrenceRule()
+                        onRuleConfirmed(rule)
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(12.dp),
@@ -95,6 +123,7 @@ fun CustomRecurrenceScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -144,31 +173,43 @@ fun CustomRecurrenceScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
-                    ) {
-                         Text(
-                             customRecurrenceState.frequency.name.lowercase().replaceFirstChar { it.uppercase() } + if(customRecurrenceState.interval > 1) "s" else "",
-                             fontWeight = FontWeight.Medium
-                         )
-                         Icon(Icons.Default.ExpandMore, null)
-                    }
-                    DropdownMenu(
-                        expanded = expandedFrequency,
-                        onDismissRequest = { expandedFrequency = false }
-                    ) {
-                        Frequency.entries.forEach { frequency ->
-                            DropdownMenuItem(
-                                text = { Text(frequency.name.lowercase().replaceFirstChar { it.uppercase() }) },
-                                onClick = {
-                                    onCustomRecurrenceEvent(CustomRecurrenceEvent.OnFrequencyChanged(frequency))
-                                    expandedFrequency = false
-                                }
-                            )
-                        }
-                    }
+                     ) {
+                          val label = when (customRecurrenceState.frequency) {
+                              Frequency.DAILY -> "Day"
+                              Frequency.WEEKLY -> "Week"
+                              Frequency.MONTHLY -> "Month"
+                              Frequency.YEARLY -> "Year"
+                          }
+                          Text(
+                              label + if(customRecurrenceState.interval > 1) "s" else "",
+                              fontWeight = FontWeight.Medium
+                          )
+                          Icon(Icons.Default.ExpandMore, null)
+                     }
+                     DropdownMenu(
+                         expanded = expandedFrequency,
+                         onDismissRequest = { expandedFrequency = false }
+                     ) {
+                         Frequency.entries.forEach { frequency ->
+                             val label = when (frequency) {
+                                  Frequency.DAILY -> "Day"
+                                  Frequency.WEEKLY -> "Week"
+                                  Frequency.MONTHLY -> "Month"
+                                  Frequency.YEARLY -> "Year"
+                             }
+                             DropdownMenuItem(
+                                 text = { Text(label) },
+                                 onClick = {
+                                     onCustomRecurrenceEvent(CustomRecurrenceEvent.OnFrequencyChanged(frequency))
+                                     expandedFrequency = false
+                                 }
+                             )
+                         }
+                     }
                 }
             }
             
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             
             // Days Section (Only if Weekly)
             if (customRecurrenceState.frequency == Frequency.WEEKLY) {
@@ -194,7 +235,122 @@ fun CustomRecurrenceScreen(
                         )
                     }
                 }
+                 Spacer(modifier = Modifier.height(24.dp))
             }
+            
+            // Repeat after completion
+             Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onCustomRecurrenceEvent(CustomRecurrenceEvent.OnFromCompletionToggled(!customRecurrenceState.fromCompletion)) }
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = customRecurrenceState.fromCompletion,
+                    onCheckedChange = { onCustomRecurrenceEvent(CustomRecurrenceEvent.OnFromCompletionToggled(it)) },
+                    colors = CheckboxDefaults.colors(checkedColor = Indigo500)
+                )
+                Text(
+                    "Repeat after completion",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Ends Section
+            Text(
+                "Ends",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            // Never
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().clickable { onCustomRecurrenceEvent(CustomRecurrenceEvent.OnEndModeChanged(EndMode.NEVER)) }
+            ) {
+                RadioButton(
+                    selected = customRecurrenceState.endMode == EndMode.NEVER,
+                    onClick = { onCustomRecurrenceEvent(CustomRecurrenceEvent.OnEndModeChanged(EndMode.NEVER)) },
+                    colors = RadioButtonDefaults.colors(selectedColor = Indigo500)
+                )
+                Text("Never", style = MaterialTheme.typography.bodyLarge)
+            }
+            
+            // On Date
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().clickable { onCustomRecurrenceEvent(CustomRecurrenceEvent.OnEndModeChanged(EndMode.DATE)) }
+            ) {
+                RadioButton(
+                    selected = customRecurrenceState.endMode == EndMode.DATE,
+                    onClick = { onCustomRecurrenceEvent(CustomRecurrenceEvent.OnEndModeChanged(EndMode.DATE)) },
+                    colors = RadioButtonDefaults.colors(selectedColor = Indigo500)
+                )
+                Text("On date", style = MaterialTheme.typography.bodyLarge)
+                Spacer(modifier = Modifier.width(16.dp))
+
+                
+                if (customRecurrenceState.endMode == EndMode.DATE) {
+                     Box(
+                        modifier = Modifier
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha=0.3f))
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                            .clickable { showDatePicker = true }
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val dateText = customRecurrenceState.endDate?.let { 
+                             val date = Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault()).date
+                             "${date.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${date.dayOfMonth}, ${date.year}"
+                        } ?: "Select date"
+                        Text(dateText, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
+            
+             // After occurrences
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().clickable { onCustomRecurrenceEvent(CustomRecurrenceEvent.OnEndModeChanged(EndMode.COUNT)) }
+            ) {
+                RadioButton(
+                    selected = customRecurrenceState.endMode == EndMode.COUNT,
+                    onClick = { onCustomRecurrenceEvent(CustomRecurrenceEvent.OnEndModeChanged(EndMode.COUNT)) },
+                    colors = RadioButtonDefaults.colors(selectedColor = Indigo500)
+                )
+                Text("After", style = MaterialTheme.typography.bodyLarge)
+                Spacer(modifier = Modifier.width(16.dp))
+                
+                if (customRecurrenceState.endMode == EndMode.COUNT) {
+                     Row(
+                        modifier = Modifier
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha=0.3f))
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = { onCustomRecurrenceEvent(CustomRecurrenceEvent.OnOccurrenceCountChanged((customRecurrenceState.occurrenceCount ?: 1) - 1)) }, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Default.Remove, null, modifier = Modifier.size(16.dp))
+                        }
+                        Text((customRecurrenceState.occurrenceCount ?: 1).toString(), fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp))
+                        IconButton(onClick = { onCustomRecurrenceEvent(CustomRecurrenceEvent.OnOccurrenceCountChanged((customRecurrenceState.occurrenceCount ?: 1) + 1)) }, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("occurrences", style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

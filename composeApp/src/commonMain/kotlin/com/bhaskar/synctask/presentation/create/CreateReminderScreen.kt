@@ -1,69 +1,40 @@
 package com.bhaskar.synctask.presentation.create
 
+import CreateReminderEvent
+import CreateReminderState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Repeat
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.bhaskar.synctask.domain.model.Priority
 import com.bhaskar.synctask.domain.model.RecurrenceRule
-import com.bhaskar.synctask.presentation.create.components.CreateReminderEvent
-import com.bhaskar.synctask.presentation.create.components.CreateReminderState
 import com.bhaskar.synctask.presentation.recurrence.RecurrenceModal
 import com.bhaskar.synctask.presentation.theme.Indigo500
 import com.bhaskar.synctask.presentation.utils.toLocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.LocalTime
+import kotlinx.datetime.*
+import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberTimePickerState
-import androidx.compose.material3.TimePickerState
-import androidx.compose.material3.AlertDialog
+import com.bhaskar.synctask.presentation.create.components.ui_components.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,72 +60,60 @@ fun CreateReminderScreen(
                 onCreateReminderEvent(CreateReminderEvent.OnRecurrenceSelected(rule))
                 savedStateHandle?.remove<String>("recurrence_rule")
             } catch (e: Exception) {
-                // Handle serialization error, maybe log it
+                // Handle serialization error
             }
         }
     }
 
-    // DatePicker Dialog - FIXED
+    // DatePicker Dialogs
     if (createReminderState.showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = Clock.System.now().toEpochMilliseconds()
+        DatePickerModal(
+            selectedDate = createReminderState.selectedDate,
+            onDateSelected = { onCreateReminderEvent(CreateReminderEvent.OnDateSelected(it)) },
+            onDismiss = { onCreateReminderEvent(CreateReminderEvent.OnToggleDatePicker) }
         )
-        DatePickerDialog(
-            onDismissRequest = { onCreateReminderEvent(CreateReminderEvent.OnToggleDatePicker) },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        val date = Instant.fromEpochMilliseconds(millis)
-                            .toLocalDateTime(TimeZone.currentSystemDefault()).date
-                        onCreateReminderEvent(CreateReminderEvent.OnDateSelected(date))
-                    }
-                    onCreateReminderEvent(CreateReminderEvent.OnToggleDatePicker)
-                }) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { onCreateReminderEvent(CreateReminderEvent.OnToggleDatePicker) }) {
-                    Text("Cancel")
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+    }
+    if (createReminderState.showDeadlineDatePicker) {
+        DatePickerModal(
+            selectedDate = createReminderState.deadlineDate ?: Clock.System.todayIn(TimeZone.currentSystemDefault()),
+            onDateSelected = { onCreateReminderEvent(CreateReminderEvent.OnDeadlineDateSelected(it)) },
+            onDismiss = { onCreateReminderEvent(CreateReminderEvent.OnToggleDeadlineDatePicker) }
+        )
+    }
+    if (createReminderState.showCustomReminderDatePicker) {
+        DatePickerModal(
+            selectedDate = createReminderState.customReminderDate ?: createReminderState.selectedDate,
+            onDateSelected = { onCreateReminderEvent(CreateReminderEvent.OnCustomReminderDateSelected(it)) },
+            onDismiss = { onCreateReminderEvent(CreateReminderEvent.OnToggleCustomReminderDatePicker) }
+        )
     }
 
-    // TimePicker Dialog - FIXED
+    // TimePicker Dialogs
     if (createReminderState.showTimePicker) {
-        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-        val timePickerState = rememberTimePickerState(
-            initialHour = now.hour,
-            initialMinute = now.minute,
-            is24Hour = false
+        TimePickerModal(
+            selectedTime = createReminderState.selectedTime,
+            onTimeSelected = { onCreateReminderEvent(CreateReminderEvent.OnTimeSelected(it)) },
+            onDismiss = { onCreateReminderEvent(CreateReminderEvent.OnToggleTimePicker) }
         )
-
-        AlertDialog(
-            onDismissRequest = { onCreateReminderEvent(CreateReminderEvent.OnToggleTimePicker) },
-            confirmButton = {
-                TextButton(onClick = {
-                    val time = LocalTime(timePickerState.hour, timePickerState.minute)
-                    onCreateReminderEvent(CreateReminderEvent.OnTimeSelected(time))
-                }) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { onCreateReminderEvent(CreateReminderEvent.OnToggleTimePicker) }) {
-                    Text("Cancel")
-                }
-            },
-            text = {
-                TimePicker(state = timePickerState)
-            }
+    }
+    if (createReminderState.showDeadlineTimePicker) {
+        TimePickerModal(
+            selectedTime = createReminderState.deadlineTime ?: LocalTime(0, 0),
+            onTimeSelected = { onCreateReminderEvent(CreateReminderEvent.OnDeadlineTimeSelected(it)) },
+            onDismiss = { onCreateReminderEvent(CreateReminderEvent.OnToggleDeadlineTimePicker) }
+        )
+    }
+    if (createReminderState.showCustomReminderTimePicker) {
+        TimePickerModal(
+            selectedTime = createReminderState.customReminderTime ?: createReminderState.selectedTime,
+            onTimeSelected = { onCreateReminderEvent(CreateReminderEvent.OnCustomReminderTimeSelected(it)) },
+            onDismiss = { onCreateReminderEvent(CreateReminderEvent.OnToggleCustomReminderTimePicker) }
         )
     }
 
     if (showRecurrenceModal) {
         RecurrenceModal(
+            startDate = createReminderState.selectedDate,
             onDismissRequest = { showRecurrenceModal = false },
             onRecurrenceSelected = { rule ->
                 onCreateReminderEvent(CreateReminderEvent.OnRecurrenceSelected(rule))
@@ -184,34 +143,23 @@ fun CreateReminderScreen(
                     "New Reminder",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 )
-                Spacer(modifier = Modifier.width(50.dp))
-            }
-        },
-        bottomBar = {
-            Box(modifier = Modifier.padding(16.dp)) {
-                Button(
-                    onClick = {
-                        onCreateReminderEvent(CreateReminderEvent.OnSave)
-                        onNavigateBack()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Indigo500)
-                ) {
-                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Create Reminder", fontWeight = FontWeight.SemiBold)
+                TextButton(onClick = { 
+                     onCreateReminderEvent(CreateReminderEvent.OnSave)
+                     if (createReminderState.validationError == null) {
+                         if (createReminderState.title.isNotBlank()) onNavigateBack()
+                     }
+                }) {
+                    Text("Save", fontWeight = FontWeight.SemiBold, color = Indigo500)
                 }
             }
-        }
+        },
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 20.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 10.dp)
         ) {
             // Title
             TextField(
@@ -219,7 +167,7 @@ fun CreateReminderScreen(
                 onValueChange = { onCreateReminderEvent(CreateReminderEvent.OnTitleChanged(it)) },
                 placeholder = {
                     Text(
-                        "What needs to be done?",
+                        "Title",
                         style = MaterialTheme.typography.headlineSmall.copy(color = Color.Gray)
                     )
                 },
@@ -230,114 +178,235 @@ fun CreateReminderScreen(
                     unfocusedIndicatorColor = Color.Transparent
                 ),
                 textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                isError = createReminderState.validationError != null,
                 modifier = Modifier.fillMaxWidth()
             )
+            if (createReminderState.validationError != null) {
+                Text(
+                    text = createReminderState.validationError,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 16.dp)
+                )
+            }
 
-            // Description
-            TextField(
-                value = createReminderState.description,
-                onValueChange = {
-                    onCreateReminderEvent(
-                        CreateReminderEvent.OnDescriptionChanged(
-                            it
-                        )
-                    )
-                },
-                placeholder = { Text("Add notes, URL, or details...") },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
-            Spacer(modifier = Modifier.height(24.dp))
+            // WHEN SECTION (Primary / Reminder Time)
+            SectionHeader("When")
 
-            // Date & Time
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                SelectionButton(
+            // Specific Time Toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.AccessTime, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("Specific time", style = MaterialTheme.typography.bodyLarge)
+                }
+                Switch(
+                    checked = createReminderState.hasSpecificTime,
+                    onCheckedChange = { onCreateReminderEvent(CreateReminderEvent.OnHasSpecificTimeToggled(it)) }
+                )
+            }
+            
+            // Date & Time Selection
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Date
+                DateTimePickerBox(
+                    text = formatDate(createReminderState.selectedDate),
                     icon = Icons.Default.CalendarMonth,
-                    label = "Date",
-                    value = createReminderState.date?.toString() ?: "Select",
                     onClick = { onCreateReminderEvent(CreateReminderEvent.OnToggleDatePicker) },
                     modifier = Modifier.weight(1f)
                 )
-                SelectionButton(
-                    icon = Icons.Default.AccessTime,
-                    label = "Time",
-                    value = createReminderState.time?.let { formatTime(it) } ?: "Select",
-                    onClick = { onCreateReminderEvent(CreateReminderEvent.OnToggleTimePicker) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Recurrence
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                SelectionButton(
-                    icon = Icons.Default.Repeat,
-                    label = "Repeat",
-                    value = if (createReminderState.recurrence == null) "Never" else "Repeating",
-                    onClick = { showRecurrenceModal = true },
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(modifier = Modifier.weight(1f))
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Priority
-            Text(
-                "Priority",
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Priority.entries.forEach { priority ->
-                    val isSelected = createReminderState.priority == priority
-                    val color = if (isSelected) Indigo500 else Color.Transparent
-                    val textColor =
-                        if (isSelected) Indigo500 else MaterialTheme.colorScheme.onSurface
-                    val borderColor =
-                        if (isSelected) Indigo500.copy(alpha = 0.2f) else Color.Transparent
-                    val containerColor =
-                        if (isSelected) Indigo500.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(
-                            alpha = 0.3f
-                        )
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(40.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(containerColor)
-                            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
-                            .clickable {
-                                onCreateReminderEvent(
-                                    CreateReminderEvent.OnPrioritySelected(
-                                        priority
-                                    )
-                                )
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = priority.name.lowercase()
-                                .replaceFirstChar { it.uppercase() },
-                            color = textColor,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
+                
+                // Time
+                if (createReminderState.hasSpecificTime) {
+                    DateTimePickerBox(
+                        text = formatTime(createReminderState.selectedTime),
+                        icon = Icons.Default.AccessTime,
+                        onClick = { onCreateReminderEvent(CreateReminderEvent.OnToggleTimePicker) },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+            // DEADLINE SECTION (New)
+            SectionHeader("Deadline")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                 Row(verticalAlignment = Alignment.CenterVertically) {
+                     Icon(Icons.Default.Event, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
+                     Spacer(modifier = Modifier.width(16.dp))
+                     Text("Enable deadline", style = MaterialTheme.typography.bodyLarge)
+                 }
+                 Switch(
+                     checked = createReminderState.isDeadlineEnabled,
+                     onCheckedChange = { onCreateReminderEvent(CreateReminderEvent.OnDeadlineToggled(it)) }
+                 )
+            }
+
+            if (createReminderState.isDeadlineEnabled) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Deadline Date
+                    DateTimePickerBox(
+                        text = createReminderState.deadlineDate?.let { formatDate(it) } ?: "Set date",
+                        icon = Icons.Default.CalendarMonth,
+                        onClick = { onCreateReminderEvent(CreateReminderEvent.OnToggleDeadlineDatePicker) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    // Deadline Time
+                    DateTimePickerBox(
+                        text = createReminderState.deadlineTime?.let { formatTime(it) } ?: "Set time",
+                        icon = Icons.Default.AccessTime,
+                        onClick = { onCreateReminderEvent(CreateReminderEvent.OnToggleDeadlineTimePicker) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+            // REMIND ME SECTION
+            SectionHeader("Remind me")
+            
+            // At due time
+            ReminderOptionRow(
+                selected = createReminderState.reminderTimeMode == ReminderTimeMode.AT_DUE_TIME,
+                text = "At time of event (${formatTime(createReminderState.selectedTime)})",
+                onClick = { onCreateReminderEvent(CreateReminderEvent.OnReminderTimeModeChanged(ReminderTimeMode.AT_DUE_TIME)) }
+            )
+            
+            // Before due time (Pre-reminder)
+            ReminderOptionRow(
+                selected = createReminderState.reminderTimeMode == ReminderTimeMode.BEFORE_DUE_TIME,
+                text = "Pre-reminder (Before event)",
+                onClick = { onCreateReminderEvent(CreateReminderEvent.OnReminderTimeModeChanged(ReminderTimeMode.BEFORE_DUE_TIME)) }
+            )
+            
+            if (createReminderState.reminderTimeMode == ReminderTimeMode.BEFORE_DUE_TIME) {
+                // Offset Dropdown/Selection
+                ScrollableRowOfChips(
+                    options = listOf(
+                        300000L to "5 min",
+                        600000L to "10 min",
+                        1800000L to "30 min",
+                        3600000L to "1 hr",
+                        7200000L to "2 hrs",
+                        86400000L to "1 day"
+                    ),
+                    selectedFn = { it == createReminderState.beforeDueOffset },
+                    onSelect = { onCreateReminderEvent(CreateReminderEvent.OnBeforeDueOffsetChanged(it)) },
+                    modifier = Modifier.padding(start = 16.dp)
+                )
+            }
+
+            // Custom time
+            ReminderOptionRow(
+                selected = createReminderState.reminderTimeMode == ReminderTimeMode.CUSTOM_TIME,
+                text = "Custom date & time",
+                onClick = { onCreateReminderEvent(CreateReminderEvent.OnReminderTimeModeChanged(ReminderTimeMode.CUSTOM_TIME)) }
+            )
+            
+            if (createReminderState.reminderTimeMode == ReminderTimeMode.CUSTOM_TIME) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Custom Date
+                    DateTimePickerBox(
+                        text = createReminderState.customReminderDate?.let { formatDate(it) } ?: "Set date",
+                        icon = Icons.Default.CalendarMonth,
+                        onClick = { onCreateReminderEvent(CreateReminderEvent.OnToggleCustomReminderDatePicker) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    // Custom Time
+                    DateTimePickerBox(
+                        text = createReminderState.customReminderTime?.let { formatTime(it) } ?: "Set time",
+                        icon = Icons.Default.AccessTime,
+                        onClick = { onCreateReminderEvent(CreateReminderEvent.OnToggleCustomReminderTimePicker) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+            // PRIORITY SECTION
+            SectionHeader("Priority")
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Priority.entries.forEach { priority ->
+                    PriorityChip(
+                        priority = priority,
+                        isSelected = createReminderState.priority == priority,
+                        onSelect = { onCreateReminderEvent(CreateReminderEvent.OnPrioritySelected(priority)) }
+                    )
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+            // REPEAT SECTION
+            SectionHeader("Repeat")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showRecurrenceModal = true }
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = createReminderState.recurrenceText,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+            // NOTES SECTION
+            SectionHeader("Notes (optional)")
+            TextField(
+                value = createReminderState.description,
+                onValueChange = { onCreateReminderEvent(CreateReminderEvent.OnDescriptionChanged(it)) },
+                placeholder = { Text("Add notes...") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3,
+                maxLines = 10,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha=0.3f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha=0.3f),
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                shape = RoundedCornerShape(8.dp)
+            )
+            
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
 
-// Helper function to format time in 12-hour format
+// Helpers
 private fun formatTime(time: LocalTime): String {
     val hour = if (time.hour == 0) 12 else if (time.hour > 12) time.hour - 12 else time.hour
     val minute = time.minute.toString().padStart(2, '0')
@@ -345,57 +414,11 @@ private fun formatTime(time: LocalTime): String {
     return "$hour:$minute $period"
 }
 
-
-@Composable
-fun SelectionButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    value: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-            .clickable(onClick = onClick)
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = null, tint = Indigo500, modifier = Modifier.size(20.dp))
-        }
-        Column {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-            Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        }
+private fun formatDate(date: LocalDate): String {
+    val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+    return when (date) {
+        today -> "Today"
+        today.plus(1, DateTimeUnit.DAY) -> "Tomorrow"
+        else -> "${date.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${date.dayOfMonth}, ${date.year}"
     }
-}
-
-@Composable
-fun TimePickerDialog(
-    onDismissRequest: () -> Unit,
-    onConfirm: () -> Unit,
-    content: @Composable () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismissRequest,
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("OK")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismissRequest) {
-                Text("Cancel")
-            }
-        },
-        text = { content() }
-    )
 }

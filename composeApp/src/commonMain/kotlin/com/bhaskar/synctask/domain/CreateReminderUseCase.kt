@@ -11,6 +11,8 @@ class CreateReminderUseCase(private val repository: ReminderRepository) {
         title: String,
         description: String?,
         dueTime: Long,
+        reminderTime: Long?,
+        deadline: Long?,
         priority: Priority,
         recurrence: RecurrenceRule?
     ) {
@@ -21,6 +23,10 @@ class CreateReminderUseCase(private val repository: ReminderRepository) {
             title = title,
             description = description,
             dueTime = dueTime,
+            reminderTime = reminderTime,
+            targetRemindCount = recurrence?.occurrenceCount,
+            currentReminderCount = if (recurrence != null) 1 else null,
+            deadline = deadline,
             status = ReminderStatus.ACTIVE,
             priority = priority,
             recurrence = recurrence,
