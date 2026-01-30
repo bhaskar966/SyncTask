@@ -33,7 +33,6 @@ actual class PlatformNotificationScheduler : NotificationScheduler, KoinComponen
             println("🔵 iOS NotificationScheduler: scheduleNext() called")
             cancelAll()
 
-            // ✅ Use common calculator
             val nextNotification = notificationCalculator.getNextNotification() ?: run {
                 println("🔴 No upcoming reminders found")
                 return@launch
@@ -43,10 +42,11 @@ actual class PlatformNotificationScheduler : NotificationScheduler, KoinComponen
                 setTitle(nextNotification.title)
                 setBody(nextNotification.body)
                 setSound(UNNotificationSound.defaultSound)
+                // ✅ Convert boolean to string
                 setUserInfo(
                     mapOf(
                         "reminderId" to nextNotification.reminderId,
-                        "isPreReminder" to nextNotification.isPreReminder
+                        "isPreReminder" to nextNotification.isPreReminder.toString()
                     )
                 )
             }
@@ -74,19 +74,21 @@ actual class PlatformNotificationScheduler : NotificationScheduler, KoinComponen
 
             UNUserNotificationCenter.currentNotificationCenter().addNotificationRequest(request) { error ->
                 if (error != null) {
-                    println("❌ Error scheduling notification: ${error.localizedDescription}")
+                    println("❌ iOS: Error scheduling notification: ${error.localizedDescription}")
                 } else {
-                    println("✅ Scheduled notification for $date")
+                    println("✅ iOS: Scheduled notification for $date")
                 }
             }
         }
     }
 
     actual override fun cancelAll() {
+        println("🔵 iOS: Cancelling all notifications")
         UNUserNotificationCenter.currentNotificationCenter().removeAllPendingNotificationRequests()
     }
 
     actual override suspend fun handleNotificationDelivered(reminderId: String, isPreReminder: Boolean) {
+        println("🔵 iOS: handleNotificationDelivered() called")
         (repository as? ReminderRepositoryImpl)?.handleNotificationDelivered(reminderId, isPreReminder)
         scheduleNext()
     }
