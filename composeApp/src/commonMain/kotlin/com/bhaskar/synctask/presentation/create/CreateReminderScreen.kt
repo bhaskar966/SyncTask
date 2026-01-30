@@ -1,8 +1,7 @@
 package com.bhaskar.synctask.presentation.create
 
-import CreateReminderEvent
-import CreateReminderState
-import androidx.compose.foundation.background
+import com.bhaskar.synctask.presentation.create.components.CreateReminderEvent
+import com.bhaskar.synctask.presentation.create.components.CreateReminderState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,29 +10,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.bhaskar.synctask.domain.model.Priority
 import com.bhaskar.synctask.domain.model.RecurrenceRule
+import com.bhaskar.synctask.presentation.create.components.ReminderTimeMode
 import com.bhaskar.synctask.presentation.recurrence.RecurrenceModal
 import com.bhaskar.synctask.presentation.theme.Indigo500
-import com.bhaskar.synctask.presentation.utils.toLocalDateTime
 import kotlinx.datetime.*
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
-import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Instant
 import com.bhaskar.synctask.presentation.create.components.ui_components.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -291,14 +284,16 @@ fun CreateReminderScreen(
             ReminderOptionRow(
                 selected = createReminderState.reminderTimeMode == ReminderTimeMode.AT_DUE_TIME,
                 text = "At time of event (${formatTime(createReminderState.selectedTime)})",
-                onClick = { onCreateReminderEvent(CreateReminderEvent.OnReminderTimeModeChanged(ReminderTimeMode.AT_DUE_TIME)) }
+                onClick = { onCreateReminderEvent(CreateReminderEvent.OnReminderTimeModeChanged(
+                    ReminderTimeMode.AT_DUE_TIME)) }
             )
             
             // Before due time (Pre-reminder)
             ReminderOptionRow(
                 selected = createReminderState.reminderTimeMode == ReminderTimeMode.BEFORE_DUE_TIME,
                 text = "Pre-reminder (Before event)",
-                onClick = { onCreateReminderEvent(CreateReminderEvent.OnReminderTimeModeChanged(ReminderTimeMode.BEFORE_DUE_TIME)) }
+                onClick = { onCreateReminderEvent(CreateReminderEvent.OnReminderTimeModeChanged(
+                    ReminderTimeMode.BEFORE_DUE_TIME)) }
             )
             
             if (createReminderState.reminderTimeMode == ReminderTimeMode.BEFORE_DUE_TIME) {
@@ -322,7 +317,8 @@ fun CreateReminderScreen(
             ReminderOptionRow(
                 selected = createReminderState.reminderTimeMode == ReminderTimeMode.CUSTOM_TIME,
                 text = "Custom date & time",
-                onClick = { onCreateReminderEvent(CreateReminderEvent.OnReminderTimeModeChanged(ReminderTimeMode.CUSTOM_TIME)) }
+                onClick = { onCreateReminderEvent(CreateReminderEvent.OnReminderTimeModeChanged(
+                    ReminderTimeMode.CUSTOM_TIME)) }
             )
             
             if (createReminderState.reminderTimeMode == ReminderTimeMode.CUSTOM_TIME) {
@@ -419,6 +415,6 @@ private fun formatDate(date: LocalDate): String {
     return when (date) {
         today -> "Today"
         today.plus(1, DateTimeUnit.DAY) -> "Tomorrow"
-        else -> "${date.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${date.dayOfMonth}, ${date.year}"
+        else -> "${date.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${date.day}, ${date.year}"
     }
 }

@@ -59,13 +59,12 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
-import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
-import org.koin.compose.viewmodel.koinViewModel
+import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -239,7 +238,7 @@ fun CustomRecurrenceScreen(
             }
             
             // Repeat after completion
-             Row(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onCustomRecurrenceEvent(CustomRecurrenceEvent.OnFromCompletionToggled(!customRecurrenceState.fromCompletion)) }
@@ -251,13 +250,22 @@ fun CustomRecurrenceScreen(
                     onCheckedChange = { onCustomRecurrenceEvent(CustomRecurrenceEvent.OnFromCompletionToggled(it)) },
                     colors = CheckboxDefaults.colors(checkedColor = Indigo500)
                 )
-                Text(
-                    "Repeat after completion",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(start = 8.dp)
-                )
+                Column(modifier = Modifier.padding(start = 8.dp)) {
+                    Text(
+                        "Repeat after completion",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        if (customRecurrenceState.fromCompletion)
+                            "Next reminder created only when you mark this done"
+                        else
+                            "Next reminder auto-created after due time passes",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-            
+
             Spacer(modifier = Modifier.height(24.dp))
             
             // Ends Section
@@ -307,7 +315,7 @@ fun CustomRecurrenceScreen(
                     ) {
                         val dateText = customRecurrenceState.endDate?.let { 
                              val date = Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault()).date
-                             "${date.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${date.dayOfMonth}, ${date.year}"
+                             "${date.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${date.day}, ${date.year}"
                         } ?: "Select date"
                         Text(dateText, fontWeight = FontWeight.Medium)
                     }

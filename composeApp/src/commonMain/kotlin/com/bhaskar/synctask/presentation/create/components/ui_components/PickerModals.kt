@@ -4,11 +4,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import com.bhaskar.synctask.presentation.theme.Indigo500
 import com.bhaskar.synctask.presentation.utils.toLocalDateTime
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

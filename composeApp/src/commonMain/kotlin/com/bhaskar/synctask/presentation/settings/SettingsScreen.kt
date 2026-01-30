@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.MarkChatUnread
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,8 +42,10 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,16 +53,44 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.bhaskar.synctask.presentation.theme.Indigo500
-import org.koin.compose.viewmodel.koinViewModel
+import dev.icerock.moko.permissions.compose.BindEffect
+import dev.icerock.moko.permissions.compose.rememberPermissionsControllerFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onNavigateBack: () -> Unit,
-    viewModel: SettingsViewModel = koinViewModel()
+    onNavigateBack: () -> Unit
 ) {
+    // Create permission controller
+    val factory = rememberPermissionsControllerFactory()
+    val permissionsController = remember(factory) { factory.createPermissionsController() }
+
+    // Create ViewModel with permission controller
+    val viewModel = remember { SettingsViewModel(permissionsController) }
+
     val state by viewModel.state.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Bind permission controller to lifecycle
+    BindEffect(permissionsController)
+
+    // Re-check permission when screen resumes
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.onScreenResume()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -82,23 +113,23 @@ fun SettingsScreen(
         ) {
             // Profile
             ProfileSection(name = state.userName, email = state.userEmail)
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             // Subscription
             SubscriptionCard()
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             // Appearance
             Text("APPEARANCE", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
             AppearanceSection(
                 currentMode = state.themeMode,
                 onModeSelected = { viewModel.onEvent(SettingsEvent.OnThemeChanged(it)) }
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             // Notifications
             Text("NOTIFICATIONS", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
             NotificationSection(
@@ -109,36 +140,38 @@ fun SettingsScreen(
                 onEmailToggle = { viewModel.onEvent(SettingsEvent.OnEmailToggled(it)) },
                 onBadgeToggle = { viewModel.onEvent(SettingsEvent.OnBadgeToggled(it)) }
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             // Support
-             Text("SUPPORT", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
-             SupportSection()
-             
-             Spacer(modifier = Modifier.height(32.dp))
-             
-             // Logout
-             Box(
-                 modifier = Modifier
-                     .fillMaxWidth()
-                     .clip(RoundedCornerShape(12.dp))
-                     .background(MaterialTheme.colorScheme.surface)
-                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                     .clickable { viewModel.onEvent(SettingsEvent.OnLogout) }
-                     .padding(16.dp),
-                 contentAlignment = Alignment.Center
-             ) {
-                 Text("Log Out", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold)
-             }
-             
-             Spacer(modifier = Modifier.height(16.dp))
-             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                 Text("Version 1.0.2", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-             }
+            Text("SUPPORT", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
+            SupportSection()
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Logout
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                    .clickable { viewModel.onEvent(SettingsEvent.OnLogout) }
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Log Out", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Text("Version 1.0.2", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+            }
         }
     }
 }
+
+
 
 @Composable
 fun ProfileSection(name: String, email: String) {
@@ -274,6 +307,7 @@ fun ThemeOption(
     }
 }
 
+
 @Composable
 fun NotificationSection(
     pushEnabled: Boolean,
@@ -292,7 +326,7 @@ fun NotificationSection(
     ) {
         NotificationItem(
             icon = Icons.Filled.Notifications,
-            iconBg = Color(0xFFFFCC80), // Orange-ish
+            iconBg = Color(0xFFFFCC80),
             iconColor = Color(0xFFEF6C00),
             label = "Push Notifications",
             checked = pushEnabled,
@@ -301,7 +335,7 @@ fun NotificationSection(
         HorizontalDivider()
         NotificationItem(
             icon = Icons.Filled.Mail,
-            iconBg = Color(0xFFBBDEFB), // Blue-ish
+            iconBg = Color(0xFFBBDEFB),
             iconColor = Color(0xFF1976D2),
             label = "Email Summaries",
             checked = emailEnabled,
@@ -310,7 +344,7 @@ fun NotificationSection(
         HorizontalDivider()
         NotificationItem(
             icon = Icons.Filled.MarkChatUnread,
-            iconBg = Color(0xFFE1BEE7), // Purple-ish
+            iconBg = Color(0xFFE1BEE7),
             iconColor = Color(0xFF7B1FA2),
             label = "Badge Count",
             checked = badgeEnabled,
@@ -318,6 +352,8 @@ fun NotificationSection(
         )
     }
 }
+
+
 
 @Composable
 fun NotificationItem(

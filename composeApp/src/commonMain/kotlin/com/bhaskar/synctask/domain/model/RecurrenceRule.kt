@@ -7,14 +7,14 @@ sealed class RecurrenceRule {
     abstract val interval: Int
     abstract val endDate: Long?
     abstract val occurrenceCount: Int?
-    abstract val fromCompletion: Boolean
+    abstract val afterCompletion: Boolean
 
     @Serializable
     data class Daily(
         override val interval: Int = 1,
         override val endDate: Long? = null,
         override val occurrenceCount: Int? = null,
-        override val fromCompletion: Boolean = false
+        override val afterCompletion: Boolean = false
     ) : RecurrenceRule()
 
     @Serializable
@@ -23,7 +23,7 @@ sealed class RecurrenceRule {
         val daysOfWeek: List<Int>,
         override val endDate: Long? = null,
         override val occurrenceCount: Int? = null,
-        override val fromCompletion: Boolean = false
+        override val afterCompletion: Boolean = false
     ) : RecurrenceRule()
 
     @Serializable
@@ -32,7 +32,7 @@ sealed class RecurrenceRule {
         val dayOfMonth: Int,
         override val endDate: Long? = null,
         override val occurrenceCount: Int? = null,
-        override val fromCompletion: Boolean = false
+        override val afterCompletion: Boolean = false
     ) : RecurrenceRule()
 
     @Serializable
@@ -42,7 +42,7 @@ sealed class RecurrenceRule {
         val dayOfMonth: Int,
         override val endDate: Long? = null,
         override val occurrenceCount: Int? = null,
-        override val fromCompletion: Boolean = false
+        override val afterCompletion: Boolean = false
     ) : RecurrenceRule()
 
     @Serializable
@@ -50,6 +50,6 @@ sealed class RecurrenceRule {
         override val interval: Int,
         override val endDate: Long? = null,
         override val occurrenceCount: Int? = null,
-        override val fromCompletion: Boolean = false
+        override val afterCompletion: Boolean = false
     ) : RecurrenceRule()
 }

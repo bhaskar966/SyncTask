@@ -5,13 +5,14 @@ enum class ThemeMode {
 }
 
 data class SettingsState(
+    val userName: String = "John Doe",
+    val userEmail: String = "john@example.com",
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val isPushEnabled: Boolean = true,
+    val isPushEnabled: Boolean = false,
     val isEmailEnabled: Boolean = false,
     val isBadgeEnabled: Boolean = true,
-    val userName: String = "Jane Doe",
-    val userEmail: String = "jane.doe@example.com"
 )
+
 
 sealed class SettingsEvent {
     data class OnThemeChanged(val mode: ThemeMode) : SettingsEvent()

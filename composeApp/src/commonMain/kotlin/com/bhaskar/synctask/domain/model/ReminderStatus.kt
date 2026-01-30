@@ -4,5 +4,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class ReminderStatus {
-    ACTIVE, SNOOZED, COMPLETED, DISMISSED
+    ACTIVE,
+    COMPLETED,
+    SNOOZED,
+    DISMISSED,
+    MISSED
 }

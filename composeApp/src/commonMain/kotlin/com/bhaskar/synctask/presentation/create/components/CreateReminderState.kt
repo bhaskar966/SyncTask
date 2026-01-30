@@ -1,5 +1,9 @@
+package com.bhaskar.synctask.presentation.create.components
+
 import com.bhaskar.synctask.domain.model.Priority
 import com.bhaskar.synctask.domain.model.RecurrenceRule
+import com.bhaskar.synctask.presentation.utils.atStartOfDay
+import com.bhaskar.synctask.presentation.utils.atTime
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -46,7 +50,41 @@ data class CreateReminderState(
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
     val validationError: String? = null,
-)
+) {
+    fun getDueTime(): Long {
+        return if (hasSpecificTime) {
+            selectedDate.atTime(selectedTime)
+        } else {
+            selectedDate.atStartOfDay()
+        }
+    }
+
+    fun getReminderTime(): Long? {
+        return when (reminderTimeMode) {
+            ReminderTimeMode.AT_DUE_TIME -> null
+
+            ReminderTimeMode.BEFORE_DUE_TIME -> {
+                getDueTime() - beforeDueOffset
+            }
+
+            ReminderTimeMode.CUSTOM_TIME -> {
+                if (customReminderDate != null && customReminderTime != null) {
+                    customReminderDate.atTime(customReminderTime)
+                } else {
+                    null
+                }
+            }
+        }
+    }
+
+    fun getDeadline(): Long? {
+        return if (isDeadlineEnabled && deadlineDate != null && deadlineTime != null) {
+            deadlineDate.atTime(deadlineTime)
+        } else {
+            null
+        }
+    }
+}
 
 enum class ReminderTimeMode {
     AT_DUE_TIME, BEFORE_DUE_TIME, CUSTOM_TIME

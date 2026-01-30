@@ -66,21 +66,21 @@ class CustomRecurrenceViewModel : ViewModel() {
                 interval = s.interval,
                 endDate = endDate,
                 occurrenceCount = count,
-                fromCompletion = s.fromCompletion
+                afterCompletion = s.fromCompletion
             )
             Frequency.WEEKLY -> RecurrenceRule.Weekly(
                 interval = s.interval,
                 daysOfWeek = s.selectedDays.toList().sorted(),
                 endDate = endDate,
                 occurrenceCount = count,
-                fromCompletion = s.fromCompletion
+                afterCompletion = s.fromCompletion
             )
             Frequency.MONTHLY -> RecurrenceRule.Monthly(
                 interval = s.interval,
                 dayOfMonth = 1, // TODO: Should match start date or be selectable
                 endDate = endDate,
                 occurrenceCount = count,
-                fromCompletion = s.fromCompletion
+                afterCompletion = s.fromCompletion
             )
             Frequency.YEARLY -> RecurrenceRule.Yearly(
                 interval = s.interval,
@@ -88,7 +88,7 @@ class CustomRecurrenceViewModel : ViewModel() {
                 dayOfMonth = 1,
                 endDate = endDate,
                 occurrenceCount = count,
-                fromCompletion = s.fromCompletion
+                afterCompletion = s.fromCompletion
             )
         }
         _state.update {

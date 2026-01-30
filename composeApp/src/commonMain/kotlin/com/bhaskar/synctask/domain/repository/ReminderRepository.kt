@@ -1,4 +1,4 @@
-package com.bhaskar.synctask.domain
+package com.bhaskar.synctask.domain.repository
 
 import com.bhaskar.synctask.domain.model.Reminder
 import kotlinx.coroutines.flow.Flow
@@ -11,6 +11,6 @@ interface ReminderRepository {
     suspend fun updateReminder(reminder: Reminder)
     suspend fun deleteReminder(id: String)
     suspend fun completeReminder(id: String)
-    suspend fun snoozeReminder(id: String, snoozeUntil: Long)
+    suspend fun snoozeReminder(id: String, snoozeMinutes: Int)
     suspend fun sync()
 }

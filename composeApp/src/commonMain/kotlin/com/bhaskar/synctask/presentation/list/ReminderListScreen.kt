@@ -1,6 +1,7 @@
 package com.bhaskar.synctask.presentation.list
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,12 +37,54 @@ import com.bhaskar.synctask.presentation.theme.Amber500
 import com.bhaskar.synctask.presentation.theme.Indigo500
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import com.bhaskar.synctask.domain.model.Priority
+import com.bhaskar.synctask.domain.model.RecurrenceRule
+import com.bhaskar.synctask.domain.model.Reminder
+import com.bhaskar.synctask.domain.model.ReminderStatus
+import com.bhaskar.synctask.domain.repository.ReminderRepository
+import com.bhaskar.synctask.presentation.list.components.ReminderFilter
 import com.bhaskar.synctask.presentation.list.components.ReminderListEvent
 import com.bhaskar.synctask.presentation.list.components.ReminderListState
+import com.bhaskar.synctask.presentation.list.ui_components.CompletedReminderCard
+import com.bhaskar.synctask.presentation.list.ui_components.HeaderSection
+import com.bhaskar.synctask.presentation.utils.toLocalDateTime
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.launch
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atTime
+import kotlinx.datetime.minus
+import kotlinx.datetime.toInstant
+import org.koin.compose.koinInject
+import kotlin.coroutines.EmptyCoroutineContext.get
+import kotlin.time.Clock
+import kotlin.time.Instant
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @Composable
 fun ReminderListScreen(
@@ -75,173 +118,287 @@ fun ReminderListScreen(
             HeaderSection(
                 syncDeviceCount = reminderListState.syncDeviceCount,
                 searchQuery = reminderListState.searchQuery,
-                onSearchQueryChanged = { onReminderScreenEvent(ReminderListEvent.OnSearchQueryChanged(it)) },
+                onSearchQueryChanged = {
+                    onReminderScreenEvent(ReminderListEvent.OnSearchQueryChanged(it))
+                },
                 onNavigateToSettings = onNavigateToSettings
             )
 
-            // Content List
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Overdue
-                if (reminderListState.overdueReminders.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = "Overdue",
-                            count = reminderListState.overdueReminders.size,
-                            color = Color(0xFFEF4444)
-                        )
-                    }
-                    items(reminderListState.overdueReminders) { reminder ->
-                        ReminderCard(
-                            reminder = reminder,
-                            onCheckedChange = { onReminderScreenEvent(ReminderListEvent.OnCompleteReminder(reminder.id)) },
-                            onClick = { onNavigateToDetail(reminder.id) }
-                        )
-                    }
+            // Filter Chips
+            FilterSection(
+                selectedFilter = reminderListState.selectedFilter,
+                onFilterChanged = {
+                    onReminderScreenEvent(ReminderListEvent.OnFilterChanged(it))
                 }
+            )
 
-                // Today
-                if (reminderListState .todayReminders.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = "Today",
-                            count = reminderListState .todayReminders.size,
-                            color = Indigo500
-                        )
-                    }
-                    items(reminderListState   .todayReminders) { reminder ->
-                        ReminderCard(
-                            reminder = reminder,
-                            onCheckedChange = { onReminderScreenEvent(ReminderListEvent.OnCompleteReminder(reminder.id)) },
-                            onClick = { onNavigateToDetail(reminder.id) }
-                        )
-                    }
+            // Main Content List
+            ReminderSectionsList(
+                state = reminderListState,
+                onReminderClick = onNavigateToDetail,
+                onCompleteReminder = {
+                    onReminderScreenEvent(ReminderListEvent.OnCompleteReminder(it))
+                },
+                onSnoozeReminder = { id, minutes ->
+                    onReminderScreenEvent(ReminderListEvent.OnSnoozeReminder(id, minutes))
                 }
-                
-                // Snoozed
-                if (reminderListState .snoozedReminders.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = "Snoozed",
-                            count = reminderListState .snoozedReminders.size,
-                            color = Amber500
-                        )
-                    }
-                    items(reminderListState   .snoozedReminders) { reminder ->
-                        ReminderCard(
-                            reminder = reminder,
-                            onCheckedChange = { onReminderScreenEvent(ReminderListEvent.OnCompleteReminder(reminder.id)) },
-                            onClick = { onNavigateToDetail(reminder.id) }
-                        )
-                    }
-                }
-
-                // Later
-                if (reminderListState .laterReminders.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = "Later",
-                            count = reminderListState .laterReminders.size,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    items(reminderListState   .laterReminders) { reminder ->
-                         ReminderCard(
-                            reminder = reminder,
-                            onCheckedChange = { onReminderScreenEvent(ReminderListEvent.OnCompleteReminder(reminder.id)) },
-                            onClick = { onNavigateToDetail(reminder.id) }
-                        )
-                    }
-                }
-                
-                item { Spacer(modifier = Modifier.height(80.dp)) } // Bottom padding for FAB
-            }
+            )
         }
     }
 }
 
 @Composable
-fun HeaderSection(
-    syncDeviceCount: Int,
-    searchQuery: String,
-    onSearchQueryChanged: (String) -> Unit,
-    onNavigateToSettings: () -> Unit
+private fun FilterSection(
+    selectedFilter: ReminderFilter,
+    onFilterChanged: (ReminderFilter) -> Unit
 ) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        FilterChip(
+            selected = selectedFilter == ReminderFilter.ALL,
+            onClick = { onFilterChanged(ReminderFilter.ALL) },
+            label = { Text("All") }
+        )
+        FilterChip(
+            selected = selectedFilter == ReminderFilter.ACTIVE,
+            onClick = { onFilterChanged(ReminderFilter.ACTIVE) },
+            label = { Text("Active") }
+        )
+        FilterChip(
+            selected = selectedFilter == ReminderFilter.COMPLETED,
+            onClick = { onFilterChanged(ReminderFilter.COMPLETED) },
+            label = { Text("History") }
+        )
+    }
+}
+
+@Composable
+private fun ReminderSectionsList(
+    state: ReminderListState,
+    onReminderClick: (String) -> Unit,
+    onCompleteReminder: (String) -> Unit,
+    onSnoozeReminder: (String, Int) -> Unit
+) {
+    val showActive = state.selectedFilter != ReminderFilter.COMPLETED
+    val showCompleted = state.selectedFilter == ReminderFilter.ALL ||
+            state.selectedFilter == ReminderFilter.COMPLETED
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        // ACTIVE SECTIONS
+        if (showActive) {
+            // Missed Section
+            if (state.missedReminders.isNotEmpty()) {
+                item(key = "header_missed") {
+                    SectionHeader(
+                        title = "Missed",
+                        count = state.missedReminders.size,
+                        color = Color(0xFFDC2626),
+                        icon = Icons.Filled.Warning
+                    )
+                }
+                items(
+                    items = state.missedReminders,
+                    key = { it.id }
+                ) { reminder ->
+                    ReminderCard(
+                        reminder = reminder,
+                        onCheckedChange = { onCompleteReminder(reminder.id) },
+                        onClick = { onReminderClick(reminder.id) },
+                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
+                    )
+                }
+            }
+
+            // Overdue Section
+            if (state.overdueReminders.isNotEmpty()) {
+                item(key = "header_overdue") {
+                    SectionHeader(
+                        title = "Overdue",
+                        count = state.overdueReminders.size,
+                        color = Color(0xFFEF4444),
+                        icon = Icons.Filled.Warning
+                    )
+                }
+                items(
+                    items = state.overdueReminders,
+                    key = { it.id }
+                ) { reminder ->
+                    ReminderCard(
+                        reminder = reminder,
+                        onCheckedChange = { onCompleteReminder(reminder.id) },
+                        onClick = { onReminderClick(reminder.id) },
+                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
+                    )
+                }
+            }
+
+            // Snoozed Section
+            if (state.snoozedReminders.isNotEmpty()) {
+                item(key = "header_snoozed") {
+                    SectionHeader(
+                        title = "Snoozed",
+                        count = state.snoozedReminders.size,
+                        color = Amber500,
+                        icon = Icons.Filled.Notifications
+                    )
+                }
+                items(
+                    items = state.snoozedReminders,
+                    key = { it.id }
+                ) { reminder ->
+                    ReminderCard(
+                        reminder = reminder,
+                        onCheckedChange = { onCompleteReminder(reminder.id) },
+                        onClick = { onReminderClick(reminder.id) },
+                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
+                    )
+                }
+            }
+
+            // Today Section
+            if (state.todayReminders.isNotEmpty()) {
+                item(key = "header_today") {
+                    SectionHeader(
+                        title = "Today",
+                        count = state.todayReminders.size,
+                        color = Indigo500,
+                        icon = Icons.Filled.DateRange
+                    )
+                }
+                items(
+                    items = state.todayReminders,
+                    key = { it.id }
+                ) { reminder ->
+                    ReminderCard(
+                        reminder = reminder,
+                        onCheckedChange = { onCompleteReminder(reminder.id) },
+                        onClick = { onReminderClick(reminder.id) },
+                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
+                    )
+                }
+            }
+
+            // Tomorrow Section
+            if (state.tomorrowReminders.isNotEmpty()) {
+                item(key = "header_tomorrow") {
+                    SectionHeader(
+                        title = "Tomorrow",
+                        count = state.tomorrowReminders.size,
+                        color = Color(0xFF8B5CF6),
+                        icon = Icons.Filled.DateRange
+                    )
+                }
+                items(
+                    items = state.tomorrowReminders,
+                    key = { it.id }
+                ) { reminder ->
+                    ReminderCard(
+                        reminder = reminder,
+                        onCheckedChange = { onCompleteReminder(reminder.id) },
+                        onClick = { onReminderClick(reminder.id) },
+                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
+                    )
+                }
+            }
+
+            // Later Section
+            if (state.laterReminders.isNotEmpty()) {
+                item(key = "header_later") {
+                    SectionHeader(
+                        title = "Later",
+                        count = state.laterReminders.size,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        icon = Icons.Filled.DateRange
+                    )
+                }
+                items(
+                    items = state.laterReminders,
+                    key = { it.id }
+                ) { reminder ->
+                    ReminderCard(
+                        reminder = reminder,
+                        onCheckedChange = { onCompleteReminder(reminder.id) },
+                        onClick = { onReminderClick(reminder.id) },
+                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
+                    )
+                }
+            }
+        }
+
+        // COMPLETED SECTION
+        if (showCompleted && state.completedReminders.isNotEmpty()) {
+            item(key = "header_completed") {
+                SectionHeader(
+                    title = "Completed",
+                    count = state.completedReminders.size,
+                    color = Color(0xFF10B981),
+                    icon = Icons.Filled.CheckCircle
+                )
+            }
+            items(
+                items = state.completedReminders,
+                key = { it.id }
+            ) { reminder ->
+                CompletedReminderCard(
+                    reminder = reminder,
+                    onClick = { onReminderClick(reminder.id) }
+                )
+            }
+        }
+
+        // Empty state
+        if (showActive &&
+            state.overdueReminders.isEmpty() &&
+            state.todayReminders.isEmpty() &&
+            state.tomorrowReminders.isEmpty() &&
+            state.laterReminders.isEmpty() &&
+            state.snoozedReminders.isEmpty() &&
+            state.missedReminders.isEmpty()) {
+            item(key = "empty_state") {
+                EmptyState()
+            }
+        }
+
+        // Bottom spacing for FAB
+        item(key = "bottom_spacer") {
+            Spacer(modifier = Modifier.height(80.dp))
+        }
+    }
+}
+
+@Composable
+private fun EmptyState() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.95f))
-            .padding(bottom = 8.dp)
+            .padding(vertical = 48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Title & Buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Reminders",
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                   IconButton(onClick = {}) {
-                       Icon(Icons.Filled.FilterList, "Filter")
-                   }
-                   IconButton(onClick = onNavigateToSettings) {
-                       Icon(Icons.Filled.Settings, "Settings")
-                   }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Search Bar
-            TextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChanged,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp)),
-                placeholder = { Text("Search reminders...") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent
-                ),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
-            )
-        }
-        
-        // Sync Status
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Indigo500.copy(alpha = 0.1f))
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Filled.Cloud,
-                contentDescription = null, 
-                tint = Indigo500,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Synced across $syncDeviceCount devices", // Mocked for now
-                style = MaterialTheme.typography.labelSmall.copy(
-                    color = Indigo500,
-                    fontWeight = FontWeight.Medium
-                )
-            )
-        }
+        Icon(
+            imageVector = Icons.Filled.CheckCircle,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = Color(0xFF10B981).copy(alpha = 0.3f)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "All caught up!",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = "No reminders for now",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        )
     }
 }

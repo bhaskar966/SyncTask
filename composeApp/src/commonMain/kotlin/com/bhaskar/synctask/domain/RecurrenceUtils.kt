@@ -19,13 +19,12 @@ object RecurrenceUtils {
         completedAt: Long? = null,
         currentCount: Int = 0 // How many times it has already occurred
     ): Long? {
-        // Check End Conditions
-        if (rule.endDate != null && lastDueTime >= rule.endDate!!) return null
+        // ✅ Only check occurrence count at the start
         if (rule.occurrenceCount != null && currentCount >= rule.occurrenceCount!!) return null
 
         val timeZone = TimeZone.currentSystemDefault()
 
-        val baseTimeInstant = if (rule.fromCompletion && completedAt != null) {
+        val baseTimeInstant = if (rule.afterCompletion && completedAt != null) {
             // Use completion time for both date AND time
             Instant.fromEpochMilliseconds(completedAt)
         } else {
@@ -34,14 +33,15 @@ object RecurrenceUtils {
         }
 
         val baseDateTime = baseTimeInstant.toLocalDateTime(timeZone)
-        
-        return when (rule) {
+
+        // Calculate next occurrence
+        val nextOccurrence = when (rule) {
             is RecurrenceRule.Daily -> {
                 val next = baseDateTime.date.plus(rule.interval, DateTimeUnit.DAY)
                 next.atTime(baseDateTime.time).toInstant(timeZone).toEpochMilliseconds()
             }
             is RecurrenceRule.Weekly -> {
-                if (rule.daysOfWeek.isEmpty() || rule.fromCompletion) {
+                if (rule.daysOfWeek.isEmpty() || rule.afterCompletion) {
                     // Simple interval or dynamic from completion
                     val next = baseDateTime.date.plus(rule.interval, DateTimeUnit.WEEK)
                     next.atTime(baseDateTime.time).toInstant(timeZone).toEpochMilliseconds()
@@ -74,7 +74,7 @@ object RecurrenceUtils {
                 }
             }
             is RecurrenceRule.Monthly -> {
-                if (rule.fromCompletion) {
+                if (rule.afterCompletion) {
                     // Use completion time
                     val next = baseDateTime.date.plus(rule.interval, DateTimeUnit.MONTH)
                     next.atTime(baseDateTime.time).toInstant(timeZone).toEpochMilliseconds()
@@ -97,10 +97,17 @@ object RecurrenceUtils {
                 next.atTime(baseDateTime.time).toInstant(timeZone).toEpochMilliseconds()
             }
             is RecurrenceRule.CustomDays -> {
-                 val next = baseDateTime.date.plus(rule.interval, DateTimeUnit.DAY)
-                 next.atTime(baseDateTime.time).toInstant(timeZone).toEpochMilliseconds()
+                val next = baseDateTime.date.plus(rule.interval, DateTimeUnit.DAY)
+                next.atTime(baseDateTime.time).toInstant(timeZone).toEpochMilliseconds()
             }
         }
+
+        // ✅ Check end date AFTER calculating next occurrence
+        if (rule.endDate != null && nextOccurrence > rule.endDate!!) {
+            return null
+        }
+
+        return nextOccurrence
     }
     fun formatRecurrenceRule(rule: RecurrenceRule?): String {
         if (rule == null) return "Never"
@@ -119,7 +126,7 @@ object RecurrenceUtils {
             is RecurrenceRule.Yearly -> if (rule.interval == 1) "Yearly on ${monthName(rule.month)} ${rule.dayOfMonth}" else "Every ${rule.interval} years on ${monthName(rule.month)} ${rule.dayOfMonth}"
             is RecurrenceRule.CustomDays -> "Every ${rule.interval} days"
         }
-        val completion = if (rule.fromCompletion) " (after completion)" else ""
+        val completion = if (rule.afterCompletion) " (after completion)" else ""
         return base + completion
     }
 

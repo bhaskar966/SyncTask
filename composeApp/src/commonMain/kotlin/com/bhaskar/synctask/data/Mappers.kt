@@ -16,21 +16,21 @@ fun ReminderEntity.toDomain(): Reminder {
                 interval = recurrenceInterval ?: 1,
                 endDate = recurrenceEndDate,
                 occurrenceCount = commonCount,
-                fromCompletion = commonFromCompletion
+                afterCompletion = commonFromCompletion
             )
             "WEEKLY" -> RecurrenceRule.Weekly(
                 interval = recurrenceInterval ?: 1,
                 daysOfWeek = recurrenceDaysOfWeek?.split(",")?.mapNotNull { it.toIntOrNull() } ?: emptyList(),
                 endDate = recurrenceEndDate,
                 occurrenceCount = commonCount,
-                fromCompletion = commonFromCompletion
+                afterCompletion = commonFromCompletion
             )
             "MONTHLY" -> RecurrenceRule.Monthly(
                 interval = recurrenceInterval ?: 1,
                 dayOfMonth = recurrenceDayOfMonth ?: 1,
                 endDate = recurrenceEndDate,
                 occurrenceCount = commonCount,
-                fromCompletion = commonFromCompletion
+                afterCompletion = commonFromCompletion
             )
             "YEARLY" -> RecurrenceRule.Yearly(
                 interval = recurrenceInterval ?: 1,
@@ -38,13 +38,13 @@ fun ReminderEntity.toDomain(): Reminder {
                 dayOfMonth = recurrenceDayOfMonth ?: 1,
                 endDate = recurrenceEndDate,
                 occurrenceCount = commonCount,
-                fromCompletion = commonFromCompletion
+                afterCompletion = commonFromCompletion
             )
             "CUSTOM_DAYS" -> RecurrenceRule.CustomDays(
                 interval = recurrenceInterval ?: 1,
                 endDate = recurrenceEndDate,
                 occurrenceCount = commonCount,
-                fromCompletion = commonFromCompletion
+                afterCompletion = commonFromCompletion
             )
             else -> null
         }
@@ -86,7 +86,7 @@ fun Reminder.toEntity(): ReminderEntity {
         recInterval = recurrence.interval
         recEndDate = recurrence.endDate
         recCount = recurrence.occurrenceCount
-        recFromCompletion = recurrence.fromCompletion
+        recFromCompletion = recurrence.afterCompletion
 
         when (recurrence) {
             is RecurrenceRule.Daily -> {

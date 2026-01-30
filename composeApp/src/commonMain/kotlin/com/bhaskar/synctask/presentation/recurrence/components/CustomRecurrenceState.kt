@@ -26,21 +26,21 @@ fun CustomRecurrenceState.toRecurrenceRule(): RecurrenceRule {
             interval = interval,
             endDate = finalEndDate,
             occurrenceCount = finalCount,
-            fromCompletion = fromCompletion
+            afterCompletion = fromCompletion
         )
         Frequency.WEEKLY -> RecurrenceRule.Weekly(
             interval = interval,
             daysOfWeek = selectedDays.toList().sorted(),
             endDate = finalEndDate,
             occurrenceCount = finalCount,
-            fromCompletion = fromCompletion
+            afterCompletion = fromCompletion
         )
         Frequency.MONTHLY -> RecurrenceRule.Monthly(
             interval = interval,
             dayOfMonth = 1, // Default to 1st
             endDate = finalEndDate,
             occurrenceCount = finalCount,
-            fromCompletion = fromCompletion
+            afterCompletion = fromCompletion
         )
         Frequency.YEARLY -> RecurrenceRule.Yearly(
             interval = interval,
@@ -48,7 +48,7 @@ fun CustomRecurrenceState.toRecurrenceRule(): RecurrenceRule {
             dayOfMonth = 1, // Default to 1st
             endDate = finalEndDate,
             occurrenceCount = finalCount,
-            fromCompletion = fromCompletion
+            afterCompletion = fromCompletion
         )
     }
 }

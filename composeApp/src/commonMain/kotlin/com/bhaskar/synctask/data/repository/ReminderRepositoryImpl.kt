@@ -1,0 +1,293 @@
+package com.bhaskar.synctask.data.repository
+
+import com.bhaskar.synctask.data.services.RecurrenceService
+import com.bhaskar.synctask.data.toDomain
+import com.bhaskar.synctask.data.toEntity
+import com.bhaskar.synctask.db.SyncTaskDatabase
+import com.bhaskar.synctask.domain.model.Reminder
+import com.bhaskar.synctask.domain.model.ReminderStatus
+import com.bhaskar.synctask.domain.repository.ReminderRepository
+import com.bhaskar.synctask.platform.FirestoreDataSource
+import com.bhaskar.synctask.platform.NotificationScheduler
+import com.bhaskar.synctask.presentation.utils.toLocalDateTime
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+import kotlinx.datetime.TimeZone
+import kotlin.time.Clock
+import kotlin.time.Instant
+
+class ReminderRepositoryImpl(
+    private val database: SyncTaskDatabase,
+    private val firestoreDataSource: FirestoreDataSource,
+    private val recurrenceService: RecurrenceService,
+    private val notificationScheduler: NotificationScheduler,
+    private val scope: CoroutineScope
+) : ReminderRepository {
+
+    private val dao = database.reminderDao()
+    private val userId = "user_1"
+
+    override fun getReminders(): Flow<List<Reminder>> {
+        return dao.getAllReminders(userId)
+            .map { entities -> entities.map { it.toDomain() } }
+            .flowOn(Dispatchers.IO)
+    }
+
+    override fun getActiveReminders(): Flow<List<Reminder>> {
+        return dao.getActiveReminders(userId)
+            .map { entities -> entities.map { it.toDomain() } }
+            .flowOn(Dispatchers.IO)
+    }
+
+    override fun getReminderById(id: String): Flow<Reminder?> {
+        return dao.getReminderById(id)
+            .map { it?.toDomain() }
+            .flowOn(Dispatchers.IO)
+    }
+
+    override suspend fun createReminder(reminder: Reminder) = withContext(Dispatchers.IO) {
+        println("💾 Repository: Creating reminder - ${reminder.title}")
+        dao.insertReminder(reminder.toEntity())
+
+        withContext(Dispatchers.Main) {
+            notificationScheduler.scheduleNext()
+        }
+
+        syncToCloud(reminder)
+    }
+
+    override suspend fun updateReminder(reminder: Reminder) = withContext(Dispatchers.IO) {
+        println("💾 Repository: Updating reminder - ${reminder.title}")
+        dao.insertReminder(reminder.toEntity())
+
+        withContext(Dispatchers.Main) {
+            notificationScheduler.scheduleNext()
+        }
+
+        syncToCloud(reminder)
+    }
+
+    override suspend fun completeReminder(id: String) = withContext(Dispatchers.IO) {
+        println("✅ Repository: Completing reminder $id")
+
+        val reminder = getReminderById(id).firstOrNull() ?: return@withContext
+        val now = Clock.System.now().toEpochMilliseconds()
+
+        val completed = reminder.copy(
+            status = ReminderStatus.COMPLETED,
+            completedAt = now,
+            isSynced = false
+        )
+        dao.insertReminder(completed.toEntity())
+
+        if (reminder.recurrence != null && reminder.recurrence.afterCompletion) {
+            println("🔁 Creating next instance (afterCompletion = true)")
+            val nextReminder = recurrenceService.createNextInstance(reminder, now)
+            if (nextReminder != null) {
+                dao.insertReminder(nextReminder.toEntity())
+                syncToCloud(nextReminder)
+            }
+        }
+
+        withContext(Dispatchers.Main) {
+            notificationScheduler.scheduleNext()
+        }
+
+        syncToCloud(completed)
+    }
+
+    override suspend fun snoozeReminder(id: String, snoozeMinutes: Int) =
+        withContext(Dispatchers.IO) {
+            println("⏰ Repository: Snoozing reminder $id for $snoozeMinutes minutes")
+
+            val reminder = getReminderById(id).firstOrNull() ?: return@withContext
+            val now = Clock.System.now().toEpochMilliseconds()
+            val snoozeUntil = now + (snoozeMinutes * 60 * 1000L)
+
+            val snoozed = reminder.copy(
+                status = ReminderStatus.SNOOZED,
+                snoozeUntil = snoozeUntil,
+                isSynced = false
+            )
+            dao.insertReminder(snoozed.toEntity())
+
+            withContext(Dispatchers.Main) {
+                notificationScheduler.scheduleNext()
+            }
+
+            syncToCloud(snoozed)
+        }
+
+    override suspend fun deleteReminder(id: String) = withContext(Dispatchers.IO) {
+        println("🗑️ Repository: Deleting reminder $id")
+        dao.deleteReminder(id)
+        firestoreDataSource.deleteReminder(id)
+
+        withContext(Dispatchers.Main) {
+            notificationScheduler.scheduleNext()
+        }
+    }
+
+    override suspend fun sync() = withContext(Dispatchers.IO) {
+        val unsynced = dao.getUnsyncedReminders()
+        unsynced.forEach { entity ->
+            try {
+                firestoreDataSource.saveReminder(entity.toDomain())
+                dao.updateSyncStatus(entity.id, true)
+            } catch (e: Exception) {
+                println("❌ Sync failed for ${entity.id}: $e")
+            }
+        }
+    }
+
+    private suspend fun syncToCloud(reminder: Reminder) {
+        try {
+            firestoreDataSource.saveReminder(reminder)
+            dao.updateSyncStatus(reminder.id, true)
+        } catch (e: Exception) {
+            println("⚠️ Cloud sync failed: ${e.message}")
+        }
+    }
+
+    // ✅ NEW: Check for missed reminders
+    suspend fun checkMissedReminders() = withContext(Dispatchers.IO) {
+        println("🔍━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        println("🔍 checkMissedReminders() START")
+        val now = Clock.System.now().toEpochMilliseconds()
+        val timeZone = TimeZone.currentSystemDefault()
+        val today = Instant.fromEpochMilliseconds(now).toLocalDateTime(timeZone).date
+
+        val allReminders = getReminders().first()
+        val activeReminders = allReminders.filter { it.status == ReminderStatus.ACTIVE }
+
+        println("🔍 Checking ${activeReminders.size} active reminders")
+
+        var missedCount = 0
+
+        activeReminders.forEach { reminder ->
+            // Deadline reminders
+            if (reminder.deadline != null) {
+                if (now > reminder.deadline) {
+                    println("⚠️ DEADLINE MISSED: ${reminder.title}")
+                    println("   Deadline was: ${Instant.fromEpochMilliseconds(reminder.deadline).toLocalDateTime(timeZone)}")
+                    markAsMissed(reminder, now)
+                    missedCount++
+                }
+                return@forEach
+            }
+
+            // Normal reminders
+            val dueDate = Instant.fromEpochMilliseconds(reminder.dueTime)
+                .toLocalDateTime(timeZone).date
+
+            if (dueDate < today) {
+                println("⚠️ DUE DATE MISSED: ${reminder.title}")
+                println("   Due was: ${Instant.fromEpochMilliseconds(reminder.dueTime).toLocalDateTime(timeZone)}")
+                markAsMissed(reminder, now)
+                missedCount++
+            }
+        }
+
+        println("🔍 Check complete: $missedCount reminders marked as MISSED")
+        println("🔍━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+        withContext(Dispatchers.Main) {
+            notificationScheduler.scheduleNext()
+        }
+    }
+
+    private suspend fun markAsMissed(reminder: Reminder, now: Long) {
+        val missed = reminder.copy(
+            status = ReminderStatus.MISSED,
+            completedAt = now, // Track when it was marked missed
+            isSynced = false
+        )
+        dao.insertReminder(missed.toEntity())
+        syncToCloud(missed)
+
+        println("❌ Marked as MISSED: ${reminder.title}")
+    }
+
+    internal suspend fun handleNotificationDelivered(reminderId: String, isPreReminder: Boolean) {
+        withContext(Dispatchers.IO) {
+            println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            println("📱 handleNotificationDelivered() START")
+            println("   reminderId: $reminderId")
+            println("   isPreReminder: $isPreReminder")
+
+            // Check missed first
+            checkMissedReminders()
+
+            if (isPreReminder) {
+                println("📢 Pre-reminder delivered - no action needed")
+                println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                return@withContext
+            }
+
+            val reminder = getReminderById(reminderId).firstOrNull()
+            if (reminder == null) {
+                println("❌ Reminder not found: $reminderId")
+                println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                return@withContext
+            }
+
+            println("📋 Reminder found: ${reminder.title}")
+            println("   Status: ${reminder.status}")
+            println("   Recurrence: ${reminder.recurrence}")
+            println("   Deadline: ${reminder.deadline}")
+
+            // Handle snoozed
+            if (reminder.status == ReminderStatus.SNOOZED) {
+                println("⏰ Snoozed reminder fired - resetting to ACTIVE")
+                val active = reminder.copy(
+                    status = ReminderStatus.ACTIVE,
+                    snoozeUntil = null,
+                    isSynced = false
+                )
+                dao.insertReminder(active.toEntity())
+                syncToCloud(active)
+                println("✅ Snooze cleared")
+                println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                return@withContext
+            }
+
+            // Handle deadline reminders
+            if (reminder.deadline != null) {
+                println("🔔 Deadline reminder notification delivered - no instance creation")
+                println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                return@withContext
+            }
+
+            // Handle recurring (afterCompletion = false)
+            if (reminder.recurrence != null
+                && !reminder.recurrence.afterCompletion
+                && reminder.status == ReminderStatus.ACTIVE
+            ) {
+                println("🔁 Creating next instance (afterCompletion = false)")
+                val now = Clock.System.now().toEpochMilliseconds()
+                val nextReminder = recurrenceService.createNextInstance(reminder, now)
+                if (nextReminder != null) {
+                    dao.insertReminder(nextReminder.toEntity())
+                    syncToCloud(nextReminder)
+                    println("✅ Next instance created: ${nextReminder.id}")
+                    println("   Due: ${Instant.fromEpochMilliseconds(nextReminder.dueTime)}")
+                } else {
+                    println("⚠️ No next instance created (end date/count reached)")
+                }
+            } else {
+                println("ℹ️ No next instance creation needed")
+                println("   afterCompletion: ${reminder.recurrence?.afterCompletion}")
+                println("   status: ${reminder.status}")
+            }
+
+            println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        }
+    }
+}

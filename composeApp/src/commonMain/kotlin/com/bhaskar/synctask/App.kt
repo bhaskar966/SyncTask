@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.bhaskar.synctask.domain.model.RecurrenceRule
+import com.bhaskar.synctask.platform.NotificationScheduler
 import com.bhaskar.synctask.presentation.list.ReminderListScreen
 import com.bhaskar.synctask.presentation.theme.SyncTaskTheme
 import com.bhaskar.synctask.presentation.create.CreateReminderScreen
@@ -29,9 +30,17 @@ import com.bhaskar.synctask.presentation.settings.SettingsScreen
 import com.bhaskar.synctask.presentation.utils.MainRoutes
 import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.koinInject
 
 @Composable
 fun App() {
+
+    val notificationScheduler: NotificationScheduler = koinInject()
+
+    LaunchedEffect(Unit) {
+        notificationScheduler.scheduleNext()
+    }
+
     SyncTaskTheme {
         Surface(
             modifier = Modifier

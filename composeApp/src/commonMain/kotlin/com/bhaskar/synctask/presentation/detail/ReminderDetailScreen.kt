@@ -29,6 +29,7 @@ import com.bhaskar.synctask.presentation.theme.Indigo500
 import com.bhaskar.synctask.presentation.theme.Indigo700
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Event
@@ -166,7 +167,7 @@ fun ReminderDetailScreen(
                              // Description
                              if (!reminder.description.isNullOrBlank()) {
                                  Row(verticalAlignment = Alignment.Top) {
-                                     Icon(Icons.Default.Notes, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
+                                     Icon(Icons.AutoMirrored.Filled.Notes, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
                                      Spacer(modifier = Modifier.width(16.dp))
                                      Text(reminder.description, style = MaterialTheme.typography.bodyLarge)
                                  }

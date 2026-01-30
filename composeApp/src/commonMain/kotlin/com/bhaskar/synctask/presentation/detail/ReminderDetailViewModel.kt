@@ -2,7 +2,7 @@ package com.bhaskar.synctask.presentation.detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bhaskar.synctask.domain.ReminderRepository
+import com.bhaskar.synctask.domain.repository.ReminderRepository
 import com.bhaskar.synctask.domain.model.ReminderStatus
 import com.bhaskar.synctask.presentation.detail.component.ReminderDetailEvent
 import com.bhaskar.synctask.presentation.detail.component.ReminderDetailState
