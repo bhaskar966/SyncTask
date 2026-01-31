@@ -47,6 +47,7 @@ sealed class RecurrenceRule {
 
     @Serializable
     data class CustomDays(
+        val daysOfWeek: List<Int>,
         override val interval: Int,
         override val endDate: Long? = null,
         override val occurrenceCount: Int? = null,

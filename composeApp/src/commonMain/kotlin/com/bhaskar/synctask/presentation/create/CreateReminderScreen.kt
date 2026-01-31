@@ -21,13 +21,14 @@ import androidx.navigation.NavController
 import com.bhaskar.synctask.domain.model.Priority
 import com.bhaskar.synctask.domain.model.RecurrenceRule
 import com.bhaskar.synctask.presentation.create.components.ReminderTimeMode
-import com.bhaskar.synctask.presentation.recurrence.RecurrenceModal
+import com.bhaskar.synctask.presentation.create.components.ui_components.RecurrenceModal
 import com.bhaskar.synctask.presentation.theme.Indigo500
 import kotlinx.datetime.*
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
 import kotlin.time.Clock
 import com.bhaskar.synctask.presentation.create.components.ui_components.*
+import com.bhaskar.synctask.presentation.create.components.ui_components.CustomRecurrenceSection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,8 +114,9 @@ fun CreateReminderScreen(
                 showRecurrenceModal = false
             },
             onCustomSelected = {
+                // ✅ Close modal and show inline custom UI
                 showRecurrenceModal = false
-                onNavigateToCustomRecurrence()
+                onCreateReminderEvent(CreateReminderEvent.OnCustomRecurrenceToggled)
             },
             currentRule = createReminderState.recurrence
         )
@@ -375,6 +377,24 @@ fun CreateReminderScreen(
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+            }
+
+            // ✅ ADD THIS: Custom Recurrence Section (appears when custom mode is enabled)
+            CustomRecurrenceSection(
+                state = createReminderState,
+                onEvent = onCreateReminderEvent
+            )
+
+            // ✅ ADD: Recurrence End Date Picker
+            if (createReminderState.showRecurrenceEndDatePicker) {
+                DatePickerModal(
+                    selectedDate = createReminderState.recurrenceEndDate?.let {
+                        Instant.fromEpochMilliseconds(it)
+                            .toLocalDateTime(TimeZone.currentSystemDefault()).date
+                    } ?: Clock.System.todayIn(TimeZone.currentSystemDefault()),
+                    onDateSelected = { onCreateReminderEvent(CreateReminderEvent.OnRecurrenceEndDateSelected(it)) },
+                    onDismiss = { onCreateReminderEvent(CreateReminderEvent.OnToggleRecurrenceEndDatePicker) }
+                )
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))

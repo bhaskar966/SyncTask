@@ -1,4 +1,4 @@
-package com.bhaskar.synctask.presentation.recurrence
+package com.bhaskar.synctask.presentation.create.components.ui_components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -13,7 +13,6 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarViewWeek
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DoNotDisturbOn
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Work
@@ -42,7 +41,7 @@ fun RecurrenceModal(
     startDate: LocalDate,
     onDismissRequest: () -> Unit,
     onRecurrenceSelected: (RecurrenceRule?) -> Unit,
-    onCustomSelected: () -> Unit,
+    onCustomSelected: () -> Unit,  // ✅ This will now just close modal and show inline
     currentRule: RecurrenceRule?
 ) {
     val sheetState = rememberModalBottomSheetState()
@@ -81,8 +80,8 @@ fun RecurrenceModal(
                 icon = Icons.Filled.CalendarViewWeek,
                 label = "Weekly on $dayOfWeekName",
                 isSelected = currentRule is RecurrenceRule.Weekly && currentRule.interval == 1,
-                onClick = { 
-                    onRecurrenceSelected(RecurrenceRule.Weekly(1, listOf(startDate.dayOfWeek.isoDayNumber))) 
+                onClick = {
+                    onRecurrenceSelected(RecurrenceRule.Weekly(1, listOf(startDate.dayOfWeek.isoDayNumber)))
                 }
             )
 
@@ -91,26 +90,26 @@ fun RecurrenceModal(
                 icon = Icons.Filled.CalendarMonth,
                 label = "Monthly on day ${startDate.day}",
                 isSelected = currentRule is RecurrenceRule.Monthly && currentRule.interval == 1,
-                onClick = { 
-                     onRecurrenceSelected(RecurrenceRule.Monthly(1, startDate.day))
+                onClick = {
+                    onRecurrenceSelected(RecurrenceRule.Monthly(1, startDate.day))
                 }
             )
 
-            // Weekdays (CustomDays effectively or Weekly with multiple days)
-            // RecurrenceRule.Weekly(interval=1, days=[1,2,3,4,5]) ?
-             RecurrenceOption(
+            // Weekdays
+            RecurrenceOption(
                 icon = Icons.Filled.Work,
                 label = "Every weekday",
                 subLabel = "Mon-Fri",
-                isSelected = false, // Simplified check
-                onClick = { 
-                     onRecurrenceSelected(RecurrenceRule.Weekly(1, listOf(1,2,3,4,5)))
+                isSelected = currentRule is RecurrenceRule.Weekly &&
+                        currentRule.daysOfWeek == listOf(1,2,3,4,5),
+                onClick = {
+                    onRecurrenceSelected(RecurrenceRule.Weekly(1, listOf(1,2,3,4,5)))
                 }
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-            // Custom
+            // ✅ Custom - Now just calls onCustomSelected which closes modal and shows inline UI
             RecurrenceOption(
                 icon = Icons.Filled.Tune,
                 label = "Custom...",

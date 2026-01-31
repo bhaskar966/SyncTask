@@ -24,12 +24,16 @@ import com.bhaskar.synctask.domain.repository.ReminderRepository
 import com.bhaskar.synctask.domain.generateUUID
 import com.bhaskar.synctask.domain.model.Reminder
 import com.bhaskar.synctask.domain.model.ReminderStatus
+import com.bhaskar.synctask.presentation.create.components.RecurrenceEndMode
+import com.bhaskar.synctask.presentation.create.components.RecurrenceFrequency
 import com.bhaskar.synctask.presentation.create.components.RecurrenceType
+import com.bhaskar.synctask.presentation.list.ui_components.formatRecurrence
 import com.bhaskar.synctask.presentation.utils.atStartOfDay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.number
 import kotlin.time.Instant
 
@@ -171,6 +175,8 @@ class CreateReminderViewModel(
                         )
                     )
                 }
+
+                populateCustomRecurrenceFromRule(event.recurrence)
             }
             // Deadline
             is CreateReminderEvent.OnDeadlineDateSelected -> {
@@ -227,6 +233,91 @@ class CreateReminderViewModel(
             CreateReminderEvent.OnSave -> {
                 saveReminder()
             }
+
+            is CreateReminderEvent.OnCustomRecurrenceToggled -> {
+                _state.update {
+                    it.copy(
+                        customRecurrenceMode = !it.customRecurrenceMode,
+                        // ✅ Initialize with current date info if toggling on for the first time
+                        recurrenceDayOfMonth = if (!it.customRecurrenceMode && it.recurrence == null) {
+                            it.selectedDate.day
+                        } else {
+                            it.recurrenceDayOfMonth
+                        },
+                        recurrenceMonth = if (!it.customRecurrenceMode && it.recurrence == null) {
+                            it.selectedDate.month.number
+                        } else {
+                            it.recurrenceMonth
+                        }
+                    )
+                }
+            }
+
+            is CreateReminderEvent.OnRecurrenceFrequencyChanged -> {
+                _state.update { it.copy(recurrenceFrequency = event.frequency) }
+                buildCustomRecurrenceRule()
+            }
+
+            is CreateReminderEvent.OnRecurrenceIntervalChanged -> {
+                val newInterval = event.interval.coerceAtLeast(1)
+                _state.update { it.copy(recurrenceInterval = newInterval) }
+                buildCustomRecurrenceRule()
+            }
+
+            is CreateReminderEvent.OnRecurrenceDayToggled -> {
+                val newDays = if (event.day in _state.value.recurrenceSelectedDays) {
+                    _state.value.recurrenceSelectedDays - event.day
+                } else {
+                    _state.value.recurrenceSelectedDays + event.day
+                }
+                _state.update { it.copy(recurrenceSelectedDays = newDays) }
+                buildCustomRecurrenceRule()
+            }
+
+            is CreateReminderEvent.OnRecurrenceDayOfMonthChanged -> {
+                _state.update { it.copy(recurrenceDayOfMonth = event.day.coerceIn(1, 31)) }
+                buildCustomRecurrenceRule()
+            }
+
+            is CreateReminderEvent.OnRecurrenceMonthChanged -> {
+                _state.update { it.copy(recurrenceMonth = event.month.coerceIn(1, 12)) }
+                buildCustomRecurrenceRule()
+            }
+
+            is CreateReminderEvent.OnRecurrenceEndModeChanged -> {
+                _state.update { it.copy(recurrenceEndMode = event.mode) }
+                buildCustomRecurrenceRule()
+            }
+
+            is CreateReminderEvent.OnRecurrenceEndDateSelected -> {
+                _state.update {
+                    it.copy(
+                        recurrenceEndDate = event.date.atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds(),
+                        showRecurrenceEndDatePicker = false
+                    )
+                }
+                buildCustomRecurrenceRule()
+            }
+
+            is CreateReminderEvent.OnRecurrenceOccurrenceCountChanged -> {
+                val newCount = event.count.coerceAtLeast(1)
+                _state.update { it.copy(recurrenceOccurrenceCount = newCount) }
+                buildCustomRecurrenceRule()
+            }
+
+            is CreateReminderEvent.OnRecurrenceFromCompletionToggled -> {
+                _state.update { it.copy(recurrenceFromCompletion = event.enabled) }
+                buildCustomRecurrenceRule()
+            }
+
+            is CreateReminderEvent.OnToggleRecurrenceEndDatePicker -> {
+                _state.update { it.copy(showRecurrenceEndDatePicker = !it.showRecurrenceEndDatePicker) }
+            }
+
+//            is CreateReminderEvent.OnCustomRecurrenceApply -> {
+//                buildCustomRecurrenceRule()
+//                _state.update { it.copy(customRecurrenceMode = false) }
+//            }
         }
     }
 
@@ -317,6 +408,8 @@ class CreateReminderViewModel(
                         }
                     )
                 }
+
+                populateCustomRecurrenceFromRule(reminder.recurrence)
             }
         }
     }
@@ -348,6 +441,145 @@ class CreateReminderViewModel(
         }
 
         return null
+    }
+
+    private fun buildCustomRecurrenceRule() {
+        val s = _state.value
+        val endDate = if (s.recurrenceEndMode == RecurrenceEndMode.DATE) s.recurrenceEndDate else null
+        val count = if (s.recurrenceEndMode == RecurrenceEndMode.COUNT) s.recurrenceOccurrenceCount else null
+
+        val rule = when (s.recurrenceFrequency) {
+            RecurrenceFrequency.DAILY -> RecurrenceRule.Daily(
+                interval = s.recurrenceInterval,
+                endDate = endDate,
+                occurrenceCount = count,
+                afterCompletion = s.recurrenceFromCompletion
+            )
+            RecurrenceFrequency.WEEKLY -> RecurrenceRule.Weekly(
+                interval = s.recurrenceInterval,
+                daysOfWeek = s.recurrenceSelectedDays.toList().sorted(),
+                endDate = endDate,
+                occurrenceCount = count,
+                afterCompletion = s.recurrenceFromCompletion
+            )
+            RecurrenceFrequency.MONTHLY -> RecurrenceRule.Monthly(
+                interval = s.recurrenceInterval,
+                dayOfMonth = s.recurrenceDayOfMonth,
+                endDate = endDate,
+                occurrenceCount = count,
+                afterCompletion = s.recurrenceFromCompletion
+            )
+            RecurrenceFrequency.YEARLY -> RecurrenceRule.Yearly(
+                interval = s.recurrenceInterval,
+                month = s.recurrenceMonth,
+                dayOfMonth = s.recurrenceDayOfMonth,
+                endDate = endDate,
+                occurrenceCount = count,
+                afterCompletion = s.recurrenceFromCompletion
+            )
+        }
+
+        _state.update {
+            it.copy(
+                recurrence = rule,
+                recurrenceText = formatRecurrence(rule)
+                // ✅ NO LONGER CLOSING customRecurrenceMode here
+            )
+        }
+    }
+
+    private fun populateCustomRecurrenceFromRule(rule: RecurrenceRule?) {
+        if (rule == null) {
+            return
+        }
+
+        when (rule) {
+            is RecurrenceRule.Daily -> {
+                _state.update {
+                    it.copy(
+                        recurrenceFrequency = RecurrenceFrequency.DAILY,
+                        recurrenceInterval = rule.interval,
+                        recurrenceEndMode = when {
+                            rule.endDate != null -> RecurrenceEndMode.DATE
+                            rule.occurrenceCount != null -> RecurrenceEndMode.COUNT
+                            else -> RecurrenceEndMode.NEVER
+                        },
+                        recurrenceEndDate = rule.endDate,
+                        recurrenceOccurrenceCount = rule.occurrenceCount,
+                        recurrenceFromCompletion = rule.afterCompletion
+                    )
+                }
+            }
+            is RecurrenceRule.Weekly -> {
+                _state.update {
+                    it.copy(
+                        recurrenceFrequency = RecurrenceFrequency.WEEKLY,
+                        recurrenceInterval = rule.interval,
+                        recurrenceSelectedDays = rule.daysOfWeek.toSet(),
+                        recurrenceEndMode = when {
+                            rule.endDate != null -> RecurrenceEndMode.DATE
+                            rule.occurrenceCount != null -> RecurrenceEndMode.COUNT
+                            else -> RecurrenceEndMode.NEVER
+                        },
+                        recurrenceEndDate = rule.endDate,
+                        recurrenceOccurrenceCount = rule.occurrenceCount,
+                        recurrenceFromCompletion = rule.afterCompletion
+                    )
+                }
+            }
+            is RecurrenceRule.Monthly -> {
+                _state.update {
+                    it.copy(
+                        recurrenceFrequency = RecurrenceFrequency.MONTHLY,
+                        recurrenceInterval = rule.interval,
+                        recurrenceDayOfMonth = rule.dayOfMonth,
+                        recurrenceEndMode = when {
+                            rule.endDate != null -> RecurrenceEndMode.DATE
+                            rule.occurrenceCount != null -> RecurrenceEndMode.COUNT
+                            else -> RecurrenceEndMode.NEVER
+                        },
+                        recurrenceEndDate = rule.endDate,
+                        recurrenceOccurrenceCount = rule.occurrenceCount,
+                        recurrenceFromCompletion = rule.afterCompletion
+                    )
+                }
+            }
+            is RecurrenceRule.Yearly -> {
+                _state.update {
+                    it.copy(
+                        recurrenceFrequency = RecurrenceFrequency.YEARLY,
+                        recurrenceInterval = rule.interval,
+                        recurrenceMonth = rule.month,
+                        recurrenceDayOfMonth = rule.dayOfMonth,
+                        recurrenceEndMode = when {
+                            rule.endDate != null -> RecurrenceEndMode.DATE
+                            rule.occurrenceCount != null -> RecurrenceEndMode.COUNT
+                            else -> RecurrenceEndMode.NEVER
+                        },
+                        recurrenceEndDate = rule.endDate,
+                        recurrenceOccurrenceCount = rule.occurrenceCount,
+                        recurrenceFromCompletion = rule.afterCompletion
+                    )
+                }
+            }
+            is RecurrenceRule.CustomDays -> {
+                _state.update {
+                    it.copy(
+                        recurrenceFrequency = RecurrenceFrequency.WEEKLY,  // Treat as weekly
+                        recurrenceInterval = rule.interval,
+                        recurrenceSelectedDays = rule.daysOfWeek.toSet(),
+                        recurrenceEndMode = when {
+                            rule.endDate != null -> RecurrenceEndMode.DATE
+                            rule.occurrenceCount != null -> RecurrenceEndMode.COUNT
+                            else -> RecurrenceEndMode.NEVER
+                        },
+                        recurrenceEndDate = rule.endDate,
+                        recurrenceOccurrenceCount = rule.occurrenceCount,
+                        recurrenceFromCompletion = rule.afterCompletion
+                    )
+                }
+            }
+        }
     }
 
 }

@@ -41,6 +41,7 @@ fun ReminderEntity.toDomain(): Reminder {
                 afterCompletion = commonFromCompletion
             )
             "CUSTOM_DAYS" -> RecurrenceRule.CustomDays(
+                daysOfWeek = recurrenceDaysOfWeek?.split(",")?.mapNotNull { it.toIntOrNull() } ?: emptyList(),  // ✅ ADD THIS
                 interval = recurrenceInterval ?: 1,
                 endDate = recurrenceEndDate,
                 occurrenceCount = commonCount,

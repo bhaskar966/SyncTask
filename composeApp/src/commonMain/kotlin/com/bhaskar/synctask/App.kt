@@ -16,7 +16,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.bhaskar.synctask.domain.model.RecurrenceRule
 import com.bhaskar.synctask.platform.NotificationScheduler
 import com.bhaskar.synctask.presentation.list.ReminderListScreen
 import com.bhaskar.synctask.presentation.theme.SyncTaskTheme
@@ -24,11 +23,8 @@ import com.bhaskar.synctask.presentation.create.CreateReminderScreen
 import com.bhaskar.synctask.presentation.create.CreateReminderViewModel
 import com.bhaskar.synctask.presentation.detail.ReminderDetailViewModel
 import com.bhaskar.synctask.presentation.list.ReminderListViewModel
-import com.bhaskar.synctask.presentation.recurrence.CustomRecurrenceScreen
-import com.bhaskar.synctask.presentation.recurrence.CustomRecurrenceViewModel
 import com.bhaskar.synctask.presentation.settings.SettingsScreen
 import com.bhaskar.synctask.presentation.utils.MainRoutes
-import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.compose.koinInject
 
@@ -57,9 +53,6 @@ fun App() {
 
             val reminderListViewModel: ReminderListViewModel = koinViewModel()
             val reminderListState by reminderListViewModel.state.collectAsState()
-
-            val customRecurrenceViewModel: CustomRecurrenceViewModel = koinViewModel()
-            val customRecurrenceState by customRecurrenceViewModel.state.collectAsState()
 
 
             NavHost(
@@ -122,23 +115,6 @@ fun App() {
                         },
                         onNavigateToEdit = { id ->
                             navController.navigate(MainRoutes.CreateReminderScreen(id = id))
-                        }
-                    )
-                }
-                composable<MainRoutes.CustomRecurrenceScreen>() {
-                    CustomRecurrenceScreen(
-                        customRecurrenceState = customRecurrenceState,
-                        onCustomRecurrenceEvent = customRecurrenceViewModel::onEvent,
-                        onNavigateBack = {
-                            navController.popBackStack()
-                        },
-                        onRuleConfirmed = { rule ->
-                            // Pass result back serializing to String
-                            val json = Json.encodeToString(RecurrenceRule.serializer(), rule)
-                            navController.previousBackStackEntry
-                                ?.savedStateHandle
-                                ?.set("recurrence_rule", json)
-                            navController.popBackStack()
                         }
                     )
                 }

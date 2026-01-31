@@ -9,7 +9,6 @@ import com.bhaskar.synctask.domain.repository.ReminderRepository
 import com.bhaskar.synctask.presentation.list.ReminderListViewModel
 import com.bhaskar.synctask.presentation.create.CreateReminderViewModel
 import com.bhaskar.synctask.presentation.detail.ReminderDetailViewModel
-import com.bhaskar.synctask.presentation.recurrence.CustomRecurrenceViewModel
 import com.bhaskar.synctask.presentation.settings.SettingsViewModel
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -51,7 +50,6 @@ val domainModule = module {
     viewModelOf(::ReminderListViewModel)
     viewModelOf(::CreateReminderViewModel)
     viewModelOf(::ReminderDetailViewModel)
-    viewModelOf(::CustomRecurrenceViewModel)
     viewModelOf(::SettingsViewModel)
 }
 

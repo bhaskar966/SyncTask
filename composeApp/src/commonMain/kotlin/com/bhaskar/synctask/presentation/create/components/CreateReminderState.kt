@@ -46,6 +46,19 @@ data class CreateReminderState(
     val showRecurrencePicker: Boolean = false,
     val recurrenceText: String = "Never",
 
+    // ✅ MERGED: Custom Recurrence State
+    val customRecurrenceMode: Boolean = false,  // Shows custom UI in modal
+    val recurrenceFrequency: RecurrenceFrequency = RecurrenceFrequency.WEEKLY,
+    val recurrenceInterval: Int = 1,
+    val recurrenceSelectedDays: Set<Int> = emptySet(), // 1=Mon, 7=Sun
+    val recurrenceDayOfMonth: Int = 1,  // For Monthly
+    val recurrenceMonth: Int = 1,       // For Yearly
+    val recurrenceEndMode: RecurrenceEndMode = RecurrenceEndMode.NEVER,
+    val recurrenceEndDate: Long? = null,
+    val recurrenceOccurrenceCount: Int? = null,
+    val recurrenceFromCompletion: Boolean = false,
+    val showRecurrenceEndDatePicker: Boolean = false,
+
     // UI State
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
@@ -62,11 +75,9 @@ data class CreateReminderState(
     fun getReminderTime(): Long? {
         return when (reminderTimeMode) {
             ReminderTimeMode.AT_DUE_TIME -> null
-
             ReminderTimeMode.BEFORE_DUE_TIME -> {
                 getDueTime() - beforeDueOffset
             }
-
             ReminderTimeMode.CUSTOM_TIME -> {
                 if (customReminderDate != null && customReminderTime != null) {
                     customReminderDate.atTime(customReminderTime)
@@ -92,4 +103,14 @@ enum class ReminderTimeMode {
 
 enum class RecurrenceType {
     NONE, DAILY, WEEKLY, MONTHLY, CUSTOM
+}
+
+// ✅ MERGED: Frequency enum
+enum class RecurrenceFrequency {
+    DAILY, WEEKLY, MONTHLY, YEARLY
+}
+
+// ✅ MERGED: End mode enum
+enum class RecurrenceEndMode {
+    NEVER, DATE, COUNT
 }
