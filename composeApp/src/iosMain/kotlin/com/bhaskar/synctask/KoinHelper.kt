@@ -42,3 +42,19 @@ fun processDeliveredNotifications(deliveredIds: List<String>) {
         }
     }
 }
+
+fun handleIOSComplete(reminderId: String) {
+    val repository = KoinPlatform.getKoin().get<ReminderRepository>()
+    CoroutineScope(Dispatchers.IO).launch {
+        repository.completeReminder(reminderId)
+        println("✅ iOS: Completed reminder $reminderId")
+    }
+}
+
+fun handleIOSDismiss(reminderId: String) {
+    val repository = KoinPlatform.getKoin().get<ReminderRepository>()
+    CoroutineScope(Dispatchers.IO).launch {
+        repository.dismissReminder(reminderId)
+        println("🚫 iOS: Dismissed reminder $reminderId")
+    }
+}

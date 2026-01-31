@@ -42,6 +42,12 @@ actual class PlatformNotificationScheduler : NotificationScheduler, KoinComponen
                 setTitle(nextNotification.title)
                 setBody(nextNotification.body)
                 setSound(UNNotificationSound.defaultSound)
+
+                // Set category based on reminder type
+                setCategoryIdentifier(
+                    if(nextNotification.isPreReminder) "PRE_REMINDER" else "NORMAL_REMINDER"
+                )
+
                 // ✅ Convert boolean to string
                 setUserInfo(
                     mapOf(

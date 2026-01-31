@@ -13,4 +13,6 @@ interface ReminderRepository {
     suspend fun completeReminder(id: String)
     suspend fun snoozeReminder(id: String, snoozeMinutes: Int)
     suspend fun sync()
+    suspend fun dismissReminder(id: String)
+    suspend fun rescheduleReminder(id: String, newDueTime: Long, newReminderTime: Long?)
 }

@@ -147,6 +147,54 @@ class ReminderRepositoryImpl(
         }
     }
 
+    override suspend fun dismissReminder(id: String) {
+        withContext(Dispatchers.IO) {
+            println("🚫 Repository: Dismissing reminder $id")
+            val reminder = getReminderById(id).firstOrNull() ?: return@withContext
+            val now = Clock.System.now().toEpochMilliseconds()
+
+            val dismissed = reminder.copy(
+                status = ReminderStatus.DISMISSED,
+                lastModified = now,
+                isSynced = false
+            )
+
+            dao.insertReminder(dismissed.toEntity())
+            withContext(Dispatchers.Main) {
+                notificationScheduler.scheduleNext()
+            }
+            syncToCloud(dismissed)
+        }
+
+    }
+
+    override suspend fun rescheduleReminder(
+        id: String,
+        newDueTime: Long,
+        newReminderTime: Long?
+    ) {
+        withContext(Dispatchers.IO) {
+            println("📅 Repository: Rescheduling reminder $id")
+            val reminder = getReminderById(id).firstOrNull() ?: return@withContext
+            val now = Clock.System.now().toEpochMilliseconds()
+
+            val rescheduled = reminder.copy(
+                dueTime = newDueTime,
+                reminderTime = newReminderTime,
+                lastModified = now,
+                status = ReminderStatus.ACTIVE,
+                snoozeUntil = null,
+                isSynced = false
+            )
+
+            dao.insertReminder(rescheduled.toEntity())
+            withContext(Dispatchers.Main) {
+                notificationScheduler.scheduleNext()
+            }
+            syncToCloud(rescheduled)
+        }
+    }
+
     private suspend fun syncToCloud(reminder: Reminder) {
         try {
             firestoreDataSource.saveReminder(reminder)
