@@ -15,13 +15,21 @@ fun doInitKoin() {
     initKoin()
 }
 
-// ✅ Add these helper functions to the same file
 fun handleIOSNotification(reminderId: String, isPreReminder: Boolean) {
     val scheduler = KoinPlatform.getKoin().get<NotificationScheduler>()
     CoroutineScope(Dispatchers.IO).launch {
         scheduler.handleNotificationDelivered(reminderId, isPreReminder)
     }
 }
+
+fun rescheduleNotifications() {
+    val scheduler = KoinPlatform.getKoin().get<NotificationScheduler>()
+    CoroutineScope(Dispatchers.IO).launch {
+        scheduler.scheduleNext()
+        println("✅ iOS: Rescheduled notifications")
+    }
+}
+
 
 fun checkIOSMissedReminders() {
     val repository = KoinPlatform.getKoin().get<ReminderRepository>()

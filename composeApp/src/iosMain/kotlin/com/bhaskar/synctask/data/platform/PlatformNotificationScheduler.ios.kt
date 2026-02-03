@@ -48,7 +48,6 @@ actual class PlatformNotificationScheduler : NotificationScheduler, KoinComponen
                     if(nextNotification.isPreReminder) "PRE_REMINDER" else "NORMAL_REMINDER"
                 )
 
-                // ✅ Convert boolean to string
                 setUserInfo(
                     mapOf(
                         "reminderId" to nextNotification.reminderId,
@@ -97,5 +96,23 @@ actual class PlatformNotificationScheduler : NotificationScheduler, KoinComponen
         println("🔵 iOS: handleNotificationDelivered() called")
         (repository as? ReminderRepositoryImpl)?.handleNotificationDelivered(reminderId, isPreReminder)
         scheduleNext()
+    }
+
+    actual override fun cancelNotification(reminderId: String) {
+        try {
+            println("🚫 iOS: Cancelling notification for reminder: $reminderId")
+
+            val center = UNUserNotificationCenter.currentNotificationCenter()
+
+            // Cancel both pending and delivered
+            val identifiers = listOf(reminderId, "pre_$reminderId")
+            center.removePendingNotificationRequestsWithIdentifiers(identifiers)
+            center.removeDeliveredNotificationsWithIdentifiers(identifiers)
+
+            println("✅ iOS: Cancelled notification: $reminderId")
+        } catch (e: Exception) {
+            println("❌ iOS: Failed to cancel notification $reminderId: ${e.message}")
+            e.printStackTrace()
+        }
     }
 }

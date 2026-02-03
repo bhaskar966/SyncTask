@@ -1,9 +1,12 @@
 package com.bhaskar.synctask.di
 
+import com.bhaskar.synctask.data.auth.AuthManager
+import com.bhaskar.synctask.data.fcm.FCMInitializer
 import com.bhaskar.synctask.data.services.RecurrenceService
 import com.bhaskar.synctask.data.repository.ReminderRepositoryImpl
 import com.bhaskar.synctask.data.platform.PlatformFirestoreDataSource
 import com.bhaskar.synctask.data.platform.PlatformNotificationScheduler
+import com.bhaskar.synctask.data.sync.SyncService
 import com.bhaskar.synctask.db.SyncTaskDatabase
 import com.bhaskar.synctask.domain.repository.ReminderRepository
 import com.bhaskar.synctask.presentation.list.ReminderListViewModel
@@ -23,27 +26,54 @@ import com.bhaskar.synctask.db.getSyncDatabase
 import com.bhaskar.synctask.domain.NotificationCalculator
 import com.bhaskar.synctask.platform.FirestoreDataSource
 import com.bhaskar.synctask.platform.NotificationScheduler
+import com.bhaskar.synctask.presentation.auth.AuthViewModel
 
 expect val platformModule: Module
 
 val appModule = module {
     single { CoroutineScope(Dispatchers.Default + SupervisorJob()) }
+
+    single {
+        AuthManager(
+            googleAuthenticator = get()
+        )
+    }
 }
 
-
 val dataModule = module {
-    single<SyncTaskDatabase> { getSyncDatabase(get()) }
+    single { getSyncDatabase(get()) }
     single { get<SyncTaskDatabase>().reminderDao() }
     single { RecurrenceService() }
     single { NotificationCalculator(get()) }
 
-    // Bind platform implementations to interfaces
-    single<FirestoreDataSource> { get<PlatformFirestoreDataSource>() }
-    single<NotificationScheduler> { get<PlatformNotificationScheduler>() }
 
-    // Repository
-    singleOf(::ReminderRepositoryImpl).bind<ReminderRepository>()
+    single<ReminderRepository> {
+        ReminderRepositoryImpl(
+            database = get(),
+            firestoreDataSource = get(),
+            recurrenceService = get(),
+            notificationScheduler = get(),
+            authManager = get(),
+            scope = get()
+        )
+    }
 
+    single {
+        SyncService(
+            firestoreDataSource = get(),
+            dao = get(),
+            notificationScheduler = get(),
+            authManager = get()
+        )
+    }
+
+    single {
+        FCMInitializer(
+            authManager = get(),
+            fcmManager = get(),
+            scope = get()
+        )
+    }
 }
 
 val domainModule = module {
@@ -51,6 +81,7 @@ val domainModule = module {
     viewModelOf(::CreateReminderViewModel)
     viewModelOf(::ReminderDetailViewModel)
     viewModelOf(::SettingsViewModel)
+    viewModelOf(::AuthViewModel)
 }
 
 fun initKoin(config: (KoinApplication.() -> Unit)? = null) {

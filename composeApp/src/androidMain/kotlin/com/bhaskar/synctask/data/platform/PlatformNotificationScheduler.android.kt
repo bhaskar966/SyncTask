@@ -1,6 +1,7 @@
 package com.bhaskar.synctask.data.platform
 
 import android.app.AlarmManager
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -33,7 +34,6 @@ actual class PlatformNotificationScheduler(
             println("🔵 Android NotificationScheduler: scheduleNext() called")
             cancelAll()
 
-            // ✅ Use common calculator
             val nextNotification = notificationCalculator.getNextNotification() ?: run {
                 println("🔴 No upcoming reminders found")
                 return@launch
@@ -98,4 +98,23 @@ actual class PlatformNotificationScheduler(
         (repository as? ReminderRepositoryImpl)?.handleNotificationDelivered(reminderId, isPreReminder)
         scheduleNext()
     }
+
+    actual override fun cancelNotification(reminderId: String) {
+        try {
+            println("🚫 Android: Cancelling notification for reminder: $reminderId")
+
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE)
+                    as NotificationManager
+
+            // Cancel from notification tray (matches your ReminderReceiver pattern)
+            notificationManager.cancel(reminderId.hashCode())
+            notificationManager.cancel("pre_$reminderId".hashCode())
+
+            println("✅ Android: Cancelled notification: $reminderId")
+        } catch (e: Exception) {
+            println("❌ Android: Failed to cancel notification $reminderId: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+
 }

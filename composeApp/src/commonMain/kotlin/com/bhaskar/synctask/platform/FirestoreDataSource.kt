@@ -5,6 +5,6 @@ import kotlinx.coroutines.flow.Flow
 
 interface FirestoreDataSource {
     suspend fun saveReminder(reminder: Reminder)
-    suspend fun deleteReminder(id: String)
+    suspend fun deleteReminder(userId: String, reminderId: String)
     fun getReminders(userId: String): Flow<List<Reminder>>
 }

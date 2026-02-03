@@ -4,7 +4,6 @@
 **/build/
 xcuserdata
 !src/**/build/
-local.properties
 .idea
 .DS_Store
 captures
@@ -17,3 +16,19 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
+
+# Local configuration
+local.properties
+
+# iOS Secrets
+iosApp/Configuration/Secrets.xcconfig
+iosApp/Secrets.xcconfig
+**/Secrets.xcconfig
+
+# Firebase Config Files (API keys)
+google-services.json
+**/google-services.json
+composeApp/src/google-services.json
+GoogleService-Info.plist
+**/GoogleService-Info.plist
+iosApp/iosApp/GoogleService-Info.plist

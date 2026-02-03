@@ -1,18 +1,28 @@
 import SwiftUI
 import ComposeApp
 import UserNotifications
+import FirebaseCore
+import FirebaseMessaging
+import GoogleSignIn
 
 @main
 struct iOSApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        FirebaseApp.configure()
+        print("✅ Firebase initialized successfully")
         KoinHelperKt.doInitKoin()
+        let _ = GoogleSignInBridge.shared
         registerNotificationCategories()
 
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             if granted {
                 print("✅ iOS: Notification permission granted")
+                DispatchQueue.main.async {
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
             } else {
                 print("❌ iOS: Notification permission denied: \(error?.localizedDescription ?? "unknown error")")
             }
@@ -32,6 +42,15 @@ struct iOSApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+            .onOpenURL { url in
+                GIDSignIn.sharedInstance.handle(url)
+            }
+            .onChange(of: scenePhase) { oldPhase, newPhase in
+                if newPhase == .active {
+                    print("🍎 App became active - checking for updates")
+                    KoinHelperKt.checkIOSMissedReminders()
+                }
+            }
         }
     }
 
@@ -43,11 +62,13 @@ struct iOSApp: App {
             title: "Complete",
             options: []
         )
+
         let snoozeAction = UNNotificationAction(
             identifier: "SNOOZE_ACTION",
             title: "Snooze",
             options: [.foreground]
         )
+
         let dismissAction = UNNotificationAction(
             identifier: "DISMISS_ACTION",
             title: "Dismiss",
@@ -66,6 +87,7 @@ struct iOSApp: App {
             title: "Reschedule",
             options: [.foreground]
         )
+
         let preDismissAction = UNNotificationAction(
             identifier: "PRE_DISMISS_ACTION",
             title: "Dismiss",
@@ -84,23 +106,69 @@ struct iOSApp: App {
     }
 }
 
-class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
-
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
     func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
         print("🍎 iOS: App launched")
         UNUserNotificationCenter.current().delegate = self
+        Messaging.messaging().delegate = self
         processDeliveredNotificationsOnLaunch()
         return true
+    }
+
+    func application(
+    _ application: UIApplication,
+    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        print("📱 iOS: APNS token received")
+        Messaging.messaging().apnsToken = deviceToken
+    }
+
+    func application(
+    _ application: UIApplication,
+    didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        print("❌ iOS: Failed to register for remote notifications: \(error.localizedDescription)")
+    }
+
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        guard let token = fcmToken else {
+            print("⚠️ iOS: FCM token is nil")
+            return
+        }
+
+        print("🔑 iOS: FCM Token received: \(token)")
+        SwiftFCMBridge.shared.setToken(token)
+    }
+
+    func application(
+    _ application: UIApplication,
+    didReceiveRemoteNotification userInfo: [AnyHashable : Any],
+    fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        print("📬 iOS: Remote notification received")
+        handleFCMMessage(userInfo)
+        completionHandler(.newData)
+    }
+
+    private func handleFCMMessage(_ userInfo: [AnyHashable: Any]) {
+        print("📬 iOS: Processing FCM message: \(userInfo)")
+        guard let reminderId = userInfo["reminderId"] as? String,
+        let action = userInfo["action"] as? String else {
+            print("⚠️ iOS: Invalid FCM message format - missing reminderId or action")
+            return
+        }
+
+        print("📬 iOS: FCM Action=\(action), ReminderId=\(reminderId)")
+        SwiftFCMBridge.shared.handleFCMMessage(reminderId: reminderId, action: action)
     }
 
     private func processDeliveredNotificationsOnLaunch() {
         UNUserNotificationCenter.current().getDeliveredNotifications { notifications in
             print("🍎 iOS: Found \(notifications.count) delivered notifications")
             var deliveredIds: [String] = []
-
             for notification in notifications {
                 let userInfo = notification.request.content.userInfo
                 if let reminderId = userInfo["reminderId"] as? String,
@@ -129,12 +197,17 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         print("📱 iOS: Notification received while app in foreground")
         let userInfo = notification.request.content.userInfo
 
+        if userInfo["gcm.message_id"] != nil {
+            handleFCMMessage(userInfo)
+            completionHandler([])
+            return
+        }
+
         if let reminderId = userInfo["reminderId"] as? String,
         let isPreReminderString = userInfo["isPreReminder"] as? String,
         let isPreReminder = Bool(isPreReminderString) {
             print("  reminderId: \(reminderId)")
             print("  isPreReminder: \(isPreReminder)")
-
             KoinHelperKt.handleIOSNotification(
                 reminderId: reminderId,
                 isPreReminder: isPreReminder
@@ -144,7 +217,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         completionHandler([.banner, .sound, .badge])
     }
 
-    // ✅ FIXED: Only ONE didReceive method, with @Sendable
     func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     didReceive response: UNNotificationResponse,
@@ -153,138 +225,78 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         print("📱 iOS: Notification action: \(response.actionIdentifier)")
         let userInfo = response.notification.request.content.userInfo
 
+        if userInfo["gcm.message_id"] != nil {
+            handleFCMMessage(userInfo)
+            completionHandler()
+            return
+        }
+
         guard let reminderId = userInfo["reminderId"] as? String else {
             completionHandler()
             return
         }
 
-        let title = response.notification.request.content.title
-        let isPreReminderString = userInfo["isPreReminder"] as? String ?? "false"
-        let isPreReminder = Bool(isPreReminderString) ?? false
-
         switch response.actionIdentifier {
         case "COMPLETE_ACTION":
+            print("✅ iOS: Complete action - \(reminderId)")
             KoinHelperKt.handleIOSComplete(reminderId: reminderId)
-            showLocalNotification(message: "✅ Completed: \(title)")
 
         case "DISMISS_ACTION":
+            print("🚫 iOS: Dismiss action - \(reminderId)")
             KoinHelperKt.handleIOSDismiss(reminderId: reminderId)
-            showLocalNotification(message: "🚫 Dismissed: \(title)")
-
-        case "PRE_DISMISS_ACTION":
-            showLocalNotification(message: "Pre-reminder dismissed")
 
         case "SNOOZE_ACTION":
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.presentSnoozeScreen(reminderId: reminderId, title: title)
-            }
+            print("⏰ iOS: Snooze action - \(reminderId)")
+            presentSnoozeScreen(reminderId: reminderId, title: response.notification.request.content.title)
 
         case "RESCHEDULE_ACTION":
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.presentEditScreen(reminderId: reminderId)
-            }
+            print("📅 iOS: Reschedule action - \(reminderId)")
+            presentEditScreen(reminderId: reminderId)
+
+        case "PRE_DISMISS_ACTION":
+            print("🚫 iOS: Pre-reminder dismissed - \(reminderId)")
+            center.removeDeliveredNotifications(withIdentifiers: ["pre_\(reminderId)"])
 
         case UNNotificationDefaultActionIdentifier:
-            KoinHelperKt.handleIOSNotification(
-                reminderId: reminderId,
-                isPreReminder: isPreReminder
-            )
+            print("👆 iOS: Notification tapped - opening app")
 
         default:
-            break
+            print("⚠️ iOS: Unknown action: \(response.actionIdentifier)")
         }
 
         completionHandler()
     }
 
-    func applicationDidBecomeActive(_ application: UIApplication) {
-        print("🍎 iOS: App became active")
-        KoinHelperKt.checkIOSMissedReminders()
-        processDeliveredNotificationsOnLaunch()
-    }
-
+    // Helper to present Snooze screen
     private func presentSnoozeScreen(reminderId: String, title: String) {
-        let snoozeVC = MainViewControllerKt.SnoozeViewController(
-            reminderId: reminderId,
-            title: title,
-            onDismiss: { @MainActor in
-                if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                let window = scene.windows.first,
-                let rootVC = window.rootViewController {
-
-                    var topVC = rootVC
-                    while let presented = topVC.presentedViewController {
-                        topVC = presented
+        DispatchQueue.main.async {
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+            let rootVC = windowScene.windows.first?.rootViewController {
+                let snoozeVC = MainViewControllerKt.SnoozeViewController(
+                    reminderId: reminderId,
+                    title: title,
+                    onDismiss: {
+                        rootVC.dismiss(animated: true, completion: nil)
                     }
-
-                    topVC.dismiss(animated: true)
-                }
-            }
-        )
-
-        snoozeVC.modalPresentationStyle = .fullScreen
-
-        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-        let window = scene.windows.first,
-        let rootVC = window.rootViewController {
-
-            var topVC = rootVC
-            while let presented = topVC.presentedViewController {
-                topVC = presented
-            }
-
-            topVC.present(snoozeVC, animated: true) {
-                print("✅ Snooze screen presented")
+                )
+                rootVC.present(snoozeVC, animated: true)
             }
         }
     }
 
+    // Helper to present Edit screen
     private func presentEditScreen(reminderId: String) {
-        let editVC = MainViewControllerKt.EditReminderViewController(
-            reminderId: reminderId,
-            onDismiss: { @MainActor in
-                if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                let window = scene.windows.first,
-                let rootVC = window.rootViewController {
-
-                    var topVC = rootVC
-                    while let presented = topVC.presentedViewController {
-                        topVC = presented
+        DispatchQueue.main.async {
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+            let rootVC = windowScene.windows.first?.rootViewController {
+                let editVC = MainViewControllerKt.EditReminderViewController(
+                    reminderId: reminderId,
+                    onDismiss: {
+                        rootVC.dismiss(animated: true, completion: nil)
                     }
-
-                    topVC.dismiss(animated: true)
-                }
-            }
-        )
-
-        editVC.modalPresentationStyle = .fullScreen
-
-        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-        let window = scene.windows.first,
-        let rootVC = window.rootViewController {
-
-            var topVC = rootVC
-            while let presented = topVC.presentedViewController {
-                topVC = presented
-            }
-
-            topVC.present(editVC, animated: true) {
-                print("✅ Edit screen presented")
+                )
+                rootVC.present(editVC, animated: true)
             }
         }
-    }
-
-    private func showLocalNotification(message: String) {
-        let content = UNMutableNotificationContent()
-        content.body = message
-        content.sound = nil
-
-        let request = UNNotificationRequest(
-            identifier: UUID().uuidString,
-            content: content,
-            trigger: nil
-        )
-
-        UNUserNotificationCenter.current().add(request)
     }
 }

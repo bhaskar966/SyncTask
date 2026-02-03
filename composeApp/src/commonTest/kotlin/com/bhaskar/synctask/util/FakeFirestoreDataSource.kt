@@ -21,14 +21,14 @@ class FakeFirestoreDataSource : FirestoreDataSource {
         println("☁️ FakeFirestore: Saved ${reminder.id}")
     }
 
-    override suspend fun deleteReminder(id: String) {
+    override suspend fun deleteReminder(userId: String, reminderId: String) {
         if (shouldThrowError) {
             throw Exception("Network error")
         }
         val current = reminders.value.toMutableMap()
-        current.remove(id)
+        current.remove(reminderId)
         reminders.value = current
-        println("☁️ FakeFirestore: Deleted $id")
+        println("☁️ FakeFirestore: Deleted $reminderId")
     }
 
     override fun getReminders(userId: String): Flow<List<Reminder>> {

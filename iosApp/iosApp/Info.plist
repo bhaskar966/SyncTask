@@ -1,11 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
+    <dict>
+        <key>CADisableMinimumFrameDurationOnPhone</key>
+        <true/>
 
-    <key>NSUserNotificationUsageDescription</key>
-    <string>We need permission to remind you about your tasks at the scheduled time</string>
-</dict>
+        <key>NSUserNotificationUsageDescription</key>
+        <string>We need permission to remind you about your tasks at the scheduled time</string>
+
+        <!-- Background Modes for better sync -->
+        <key>UIBackgroundModes</key>
+        <array>
+            <string>fetch</string>
+        </array>
+
+        <!-- Google Sign-In - Injected from Secrets.xcconfig -->
+        <key>GIDClientID</key>
+        <string>$(GOOGLE_IOS_CLIENT_ID)</string>
+
+        <key>CFBundleURLTypes</key>
+        <array>
+            <dict>
+                <key>CFBundleTypeRole</key>
+                <string>Editor</string>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                    <string>$(GOOGLE_IOS_URL_SCHEME)</string>
+                </array>
+            </dict>
+        </array>
+    </dict>
 </plist>

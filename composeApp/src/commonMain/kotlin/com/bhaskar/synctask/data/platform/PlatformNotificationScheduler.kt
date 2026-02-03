@@ -9,4 +9,6 @@ expect class PlatformNotificationScheduler: NotificationScheduler {
         reminderId: String,
         isPreReminder: Boolean
     )
+
+    override fun cancelNotification(reminderId: String)
 }

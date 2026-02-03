@@ -1,0 +1,15 @@
+node_modules/
+*.local
+
+# Logs
+firebase-debug.log
+firebase-debug.*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/

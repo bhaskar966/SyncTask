@@ -6,6 +6,6 @@ import kotlinx.coroutines.flow.Flow
 
 expect class PlatformFirestoreDataSource: FirestoreDataSource {
     override suspend fun saveReminder(reminder: Reminder)
-    override suspend fun deleteReminder(id: String)
+    override suspend fun deleteReminder(userId: String, reminderId: String)
     override fun getReminders(userId: String): Flow<List<Reminder>>
 }

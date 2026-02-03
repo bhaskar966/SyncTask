@@ -2,6 +2,8 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -12,17 +14,27 @@ plugins {
     alias(libs.plugins.room)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.google.gms)
 }
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if(localPropertiesFile.exists()) {
+        load(FileInputStream(localPropertiesFile))
+    }
+}
+
+val webClientId = localProperties.getProperty("GOOGLE_WEB_CLIENT_ID") ?: ""
 
 kotlin {
     androidTarget {
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
+            jvmTarget.set(JvmTarget.JVM_17)
         }
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         instrumentedTestVariant.sourceSetTree.set(KotlinSourceSetTree.test)
     }
-    
+
     listOf(
         iosArm64(),
         iosSimulatorArm64(),
@@ -34,16 +46,24 @@ kotlin {
             linkerOpts.add("-lsqlite3")
         }
     }
-    
-//    jvm()
-    
+
     sourceSets {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.koin.android)
             implementation(libs.ktor.client.cio)
+
+            // Auth
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services)
+            implementation(libs.googleid)
+
+            // Firebase
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.firebase.messaging)
         }
+
         androidInstrumentedTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.androidx.testExt.junit)
@@ -55,6 +75,7 @@ kotlin {
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.sqlite.bundled)
         }
+
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
@@ -65,14 +86,14 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
 
-            //Icons
+            // Icons
             implementation(libs.material.icons.extended)
-            
+
             // Koin
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
-            
+
             // Room
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.sqlite.bundled)
@@ -80,34 +101,36 @@ kotlin {
             // Kotlinx
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.serialization.json)
-            
+
             // Ktor
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
-            
+
             // Navigation
             implementation(libs.navigation.compose)
 
-            //Permission
-            implementation("dev.icerock.moko:permissions:0.20.1")
-            implementation("dev.icerock.moko:permissions-compose:0.20.1")
-            implementation("dev.icerock.moko:permissions-notifications:0.20.1")
+            // Permission
+            implementation(libs.permissions)
+            implementation(libs.permissions.compose)
+            implementation(libs.permissions.notifications)
+
+            // Firebase
+            implementation(libs.gitlive.firebase.common)
+            implementation(libs.gitlive.firebase.auth)
+            implementation(libs.gitlive.firebase.firestore)
         }
+
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.turbine)
             implementation(libs.koin.test)
         }
+
         iosMain.dependencies {
-            implementation(libs.ktor.client.cio) // iOS can use CIO or Darwin
+            implementation(libs.ktor.client.cio)
         }
-//        jvmMain.dependencies {
-//            implementation(compose.desktop.currentOs)
-//            implementation(libs.kotlinx.coroutinesSwing)
-//            implementation(libs.ktor.client.cio)
-//        }
     }
 }
 
@@ -125,20 +148,29 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+
+        buildConfigField("String", "WEB_CLIENT_ID", "\"$webClientId\"")
     }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
         }
     }
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 
