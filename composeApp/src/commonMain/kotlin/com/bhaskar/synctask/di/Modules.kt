@@ -6,6 +6,8 @@ import com.bhaskar.synctask.data.services.RecurrenceService
 import com.bhaskar.synctask.data.repository.ReminderRepositoryImpl
 import com.bhaskar.synctask.data.platform.PlatformFirestoreDataSource
 import com.bhaskar.synctask.data.platform.PlatformNotificationScheduler
+import com.bhaskar.synctask.data.repository.GroupRepositoryImpl
+import com.bhaskar.synctask.data.repository.TagRepositoryImpl
 import com.bhaskar.synctask.data.sync.SyncService
 import com.bhaskar.synctask.db.SyncTaskDatabase
 import com.bhaskar.synctask.domain.repository.ReminderRepository
@@ -24,15 +26,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import com.bhaskar.synctask.db.getSyncDatabase
 import com.bhaskar.synctask.domain.NotificationCalculator
+import com.bhaskar.synctask.domain.repository.GroupRepository
+import com.bhaskar.synctask.domain.repository.TagRepository
 import com.bhaskar.synctask.platform.FirestoreDataSource
 import com.bhaskar.synctask.platform.NotificationScheduler
 import com.bhaskar.synctask.presentation.auth.AuthViewModel
+import com.bhaskar.synctask.presentation.groups.GroupsViewModel
 
 expect val platformModule: Module
 
 val appModule = module {
     single { CoroutineScope(Dispatchers.Default + SupervisorJob()) }
-
     single {
         AuthManager(
             googleAuthenticator = get()
@@ -41,12 +45,19 @@ val appModule = module {
 }
 
 val dataModule = module {
+    // Database
     single { getSyncDatabase(get()) }
+
+    // DAOs - get from database instance
     single { get<SyncTaskDatabase>().reminderDao() }
+    single { get<SyncTaskDatabase>().groupDao() }
+    single { get<SyncTaskDatabase>().tagDao() }
+
+    // Services
     single { RecurrenceService() }
     single { NotificationCalculator(get()) }
 
-
+    // Repositories
     single<ReminderRepository> {
         ReminderRepositoryImpl(
             database = get(),
@@ -55,6 +66,25 @@ val dataModule = module {
             notificationScheduler = get(),
             authManager = get(),
             scope = get()
+        )
+    }
+
+    single<GroupRepository> {
+        GroupRepositoryImpl(
+            groupDao = get(),
+            firestoreDataSource = get(),
+            authManager = get(),
+            coroutineScope = get(),
+            reminderDao = get()
+        )
+    }
+
+    single<TagRepository> {
+        TagRepositoryImpl(
+            tagDao = get(),
+            firestoreDataSource = get(),
+            authManager = get(),
+            coroutineScope = get()
         )
     }
 
@@ -82,6 +112,7 @@ val domainModule = module {
     viewModelOf(::ReminderDetailViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::AuthViewModel)
+    viewModelOf(::GroupsViewModel)
 }
 
 fun initKoin(config: (KoinApplication.() -> Unit)? = null) {

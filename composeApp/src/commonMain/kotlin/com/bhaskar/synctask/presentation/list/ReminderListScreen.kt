@@ -125,12 +125,12 @@ fun ReminderListScreen(
             )
 
             // Filter Chips
-            FilterSection(
-                selectedFilter = reminderListState.selectedFilter,
-                onFilterChanged = {
-                    onReminderScreenEvent(ReminderListEvent.OnFilterChanged(it))
-                }
-            )
+//            FilterSection(
+//                selectedFilter = reminderListState.selectedFilter,
+//                onFilterChanged = {
+//                    onReminderScreenEvent(ReminderListEvent.OnFilterChanged(it))
+//                }
+//            )
 
             // Main Content List
             ReminderSectionsList(
@@ -176,6 +176,7 @@ private fun FilterSection(
     }
 }
 
+// Update ReminderSectionsList in ReminderListScreen.kt
 @Composable
 private fun ReminderSectionsList(
     state: ReminderListState,
@@ -183,197 +184,152 @@ private fun ReminderSectionsList(
     onCompleteReminder: (String) -> Unit,
     onSnoozeReminder: (String, Int) -> Unit
 ) {
-    val showActive = state.selectedFilter != ReminderFilter.COMPLETED
-    val showCompleted = state.selectedFilter == ReminderFilter.ALL ||
-            state.selectedFilter == ReminderFilter.COMPLETED
-
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        // ACTIVE SECTIONS
-        if (showActive) {
-            // Missed Section
-            if (state.missedReminders.isNotEmpty()) {
-                item(key = "header_missed") {
-                    SectionHeader(
-                        title = "Missed",
-                        count = state.missedReminders.size,
-                        color = Color(0xFFDC2626),
-                        icon = Icons.Filled.Warning
-                    )
-                }
-                items(
-                    items = state.missedReminders,
-                    key = { it.id }
-                ) { reminder ->
-                    ReminderCard(
-                        reminder = reminder,
-                        onCheckedChange = { onCompleteReminder(reminder.id) },
-                        onClick = { onReminderClick(reminder.id) },
-                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
-                    )
-                }
-            }
-
-            // Overdue Section
-            if (state.overdueReminders.isNotEmpty()) {
-                item(key = "header_overdue") {
-                    SectionHeader(
-                        title = "Overdue",
-                        count = state.overdueReminders.size,
-                        color = Color(0xFFEF4444),
-                        icon = Icons.Filled.Warning
-                    )
-                }
-                items(
-                    items = state.overdueReminders,
-                    key = { it.id }
-                ) { reminder ->
-                    ReminderCard(
-                        reminder = reminder,
-                        onCheckedChange = { onCompleteReminder(reminder.id) },
-                        onClick = { onReminderClick(reminder.id) },
-                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
-                    )
-                }
-            }
-
-            // Snoozed Section
-            if (state.snoozedReminders.isNotEmpty()) {
-                item(key = "header_snoozed") {
-                    SectionHeader(
-                        title = "Snoozed",
-                        count = state.snoozedReminders.size,
-                        color = Amber500,
-                        icon = Icons.Filled.Notifications
-                    )
-                }
-                items(
-                    items = state.snoozedReminders,
-                    key = { it.id }
-                ) { reminder ->
-                    ReminderCard(
-                        reminder = reminder,
-                        onCheckedChange = { onCompleteReminder(reminder.id) },
-                        onClick = { onReminderClick(reminder.id) },
-                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
-                    )
-                }
-            }
-
-            // Today Section
-            if (state.todayReminders.isNotEmpty()) {
-                item(key = "header_today") {
-                    SectionHeader(
-                        title = "Today",
-                        count = state.todayReminders.size,
-                        color = Indigo500,
-                        icon = Icons.Filled.DateRange
-                    )
-                }
-                items(
-                    items = state.todayReminders,
-                    key = { it.id }
-                ) { reminder ->
-                    ReminderCard(
-                        reminder = reminder,
-                        onCheckedChange = { onCompleteReminder(reminder.id) },
-                        onClick = { onReminderClick(reminder.id) },
-                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
-                    )
-                }
-            }
-
-            // Tomorrow Section
-            if (state.tomorrowReminders.isNotEmpty()) {
-                item(key = "header_tomorrow") {
-                    SectionHeader(
-                        title = "Tomorrow",
-                        count = state.tomorrowReminders.size,
-                        color = Color(0xFF8B5CF6),
-                        icon = Icons.Filled.DateRange
-                    )
-                }
-                items(
-                    items = state.tomorrowReminders,
-                    key = { it.id }
-                ) { reminder ->
-                    ReminderCard(
-                        reminder = reminder,
-                        onCheckedChange = { onCompleteReminder(reminder.id) },
-                        onClick = { onReminderClick(reminder.id) },
-                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
-                    )
-                }
-            }
-
-            // Later Section
-            if (state.laterReminders.isNotEmpty()) {
-                item(key = "header_later") {
-                    SectionHeader(
-                        title = "Later",
-                        count = state.laterReminders.size,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        icon = Icons.Filled.DateRange
-                    )
-                }
-                items(
-                    items = state.laterReminders,
-                    key = { it.id }
-                ) { reminder ->
-                    ReminderCard(
-                        reminder = reminder,
-                        onCheckedChange = { onCompleteReminder(reminder.id) },
-                        onClick = { onReminderClick(reminder.id) },
-                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
-                    )
-                }
-            }
-        }
-
-        // COMPLETED SECTION
-        if (showCompleted && state.completedReminders.isNotEmpty()) {
-            item(key = "header_completed") {
+        // Missed Section
+        if (state.missedReminders.isNotEmpty()) {
+            item(key = "header_missed") {
                 SectionHeader(
-                    title = "Completed",
-                    count = state.completedReminders.size,
-                    color = Color(0xFF10B981),
-                    icon = Icons.Filled.CheckCircle
+                    title = "Missed",
+                    count = state.missedReminders.size,
+                    color = Color(0xFFDC2626),
+                    icon = Icons.Filled.Warning
                 )
             }
             items(
-                items = state.completedReminders,
+                items = state.missedReminders,
                 key = { it.id }
             ) { reminder ->
-                CompletedReminderCard(
+                ReminderCard(
                     reminder = reminder,
-                    onClick = { onReminderClick(reminder.id) }
+                    onCheckedChange = { onCompleteReminder(reminder.id) },
+                    onClick = { onReminderClick(reminder.id) },
+                    onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
                 )
             }
         }
 
-        // Empty state
-        if (showActive &&
-            state.overdueReminders.isEmpty() &&
-            state.todayReminders.isEmpty() &&
-            state.tomorrowReminders.isEmpty() &&
-            state.laterReminders.isEmpty() &&
-            state.snoozedReminders.isEmpty() &&
-            state.missedReminders.isEmpty()) {
-            item(key = "empty_state") {
-                EmptyState()
+        // Overdue Section
+        if (state.overdueReminders.isNotEmpty()) {
+            item(key = "header_overdue") {
+                SectionHeader(
+                    title = "Overdue",
+                    count = state.overdueReminders.size,
+                    color = Color(0xFFEF4444),
+                    icon = Icons.Filled.Warning
+                )
+            }
+            items(
+                items = state.overdueReminders,
+                key = { it.id }
+            ) { reminder ->
+                ReminderCard(
+                    reminder = reminder,
+                    onCheckedChange = { onCompleteReminder(reminder.id) },
+                    onClick = { onReminderClick(reminder.id) },
+                    onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
+                )
             }
         }
 
-        // Bottom spacing for FAB
-        item(key = "bottom_spacer") {
-            Spacer(modifier = Modifier.height(80.dp))
+        // Snoozed Section
+        if (state.snoozedReminders.isNotEmpty()) {
+            item(key = "header_snoozed") {
+                SectionHeader(
+                    title = "Snoozed",
+                    count = state.snoozedReminders.size,
+                    color = Amber500,
+                    icon = Icons.Filled.Notifications
+                )
+            }
+            items(
+                items = state.snoozedReminders,
+                key = { it.id }
+            ) { reminder ->
+                ReminderCard(
+                    reminder = reminder,
+                    onCheckedChange = { onCompleteReminder(reminder.id) },
+                    onClick = { onReminderClick(reminder.id) },
+                    onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
+                )
+            }
+        }
+
+        // Today Section
+        if (state.todayReminders.isNotEmpty()) {
+            item(key = "header_today") {
+                SectionHeader(
+                    title = "Today",
+                    count = state.todayReminders.size,
+                    color = Indigo500,
+                    icon = Icons.Filled.DateRange
+                )
+            }
+            items(
+                items = state.todayReminders,
+                key = { it.id }
+            ) { reminder ->
+                ReminderCard(
+                    reminder = reminder,
+                    onCheckedChange = { onCompleteReminder(reminder.id) },
+                    onClick = { onReminderClick(reminder.id) },
+                    onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
+                )
+            }
+        }
+
+        // Tomorrow Section
+        if (state.tomorrowReminders.isNotEmpty()) {
+            item(key = "header_tomorrow") {
+                SectionHeader(
+                    title = "Tomorrow",
+                    count = state.tomorrowReminders.size,
+                    color = Color(0xFF8B5CF6),
+                    icon = Icons.Filled.DateRange
+                )
+            }
+            items(
+                items = state.tomorrowReminders,
+                key = { it.id }
+            ) { reminder ->
+                ReminderCard(
+                    reminder = reminder,
+                    onCheckedChange = { onCompleteReminder(reminder.id) },
+                    onClick = { onReminderClick(reminder.id) },
+                    onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
+                )
+            }
+        }
+
+        // Later Section
+        if (state.laterReminders.isNotEmpty()) {
+            item(key = "header_later") {
+                SectionHeader(
+                    title = "Later",
+                    count = state.laterReminders.size,
+                    color = Color(0xFF6366F1),
+                    icon = Icons.Filled.DateRange
+                )
+            }
+            items(
+                items = state.laterReminders,
+                key = { it.id }
+            ) { reminder ->
+                ReminderCard(
+                    reminder = reminder,
+                    onCheckedChange = { onCompleteReminder(reminder.id) },
+                    onClick = { onReminderClick(reminder.id) },
+                    onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
+                )
+            }
         }
     }
 }
+
 
 @Composable
 private fun EmptyState() {

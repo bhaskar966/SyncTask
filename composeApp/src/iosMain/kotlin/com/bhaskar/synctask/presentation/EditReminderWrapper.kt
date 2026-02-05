@@ -25,12 +25,18 @@ fun EditReminderWrapper(
 ) {
     // Create a simple NavController for this modal
     val navController = rememberNavController()
+
+    // Get ViewModel
     val viewModel: CreateReminderViewModel = koinInject()
     val state by viewModel.state.collectAsState()
 
+    // Get groups and tags from ViewModel
+    val groups by viewModel.groups.collectAsState()
+    val tags by viewModel.tags.collectAsState()
+
     BackHandler(onBack = onDismiss)
 
-    // Load the reminder (matches your existing pattern)
+    // Load the reminder
     LaunchedEffect(reminderId) {
         viewModel.loadReminder(reminderId)
     }
@@ -39,17 +45,17 @@ fun EditReminderWrapper(
     NavHost(
         navController = navController,
         startDestination = "edit",
-        modifier = Modifier
-            .windowInsetsPadding(WindowInsets.systemBars)
+        modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars)
     ) {
         composable("edit") {
             CreateReminderScreen(
-                createReminderState = state,
-                onCreateReminderEvent = viewModel::onEvent,
-                onNavigateBack = onDismiss, // ✅ Dismiss the modal
+                state = state,
+                onEvent = viewModel::onEvent,
+                groups = groups,
+                tags = tags,
+                onNavigateBack = onDismiss,
                 onNavigateToCustomRecurrence = {
-                    // Custom recurrence is handled inline in your screen
-                    // No navigation needed
+                    // Custom recurrence is handled inline
                 },
                 navController = navController
             )

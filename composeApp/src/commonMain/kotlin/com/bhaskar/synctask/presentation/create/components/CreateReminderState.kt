@@ -2,6 +2,7 @@ package com.bhaskar.synctask.presentation.create.components
 
 import com.bhaskar.synctask.domain.model.Priority
 import com.bhaskar.synctask.domain.model.RecurrenceRule
+import com.bhaskar.synctask.domain.model.SubTask
 import com.bhaskar.synctask.presentation.utils.atStartOfDay
 import com.bhaskar.synctask.presentation.utils.atTime
 import kotlinx.datetime.LocalDate
@@ -15,7 +16,23 @@ data class CreateReminderState(
     val title: String = "",
     val description: String = "",
 
-    // Date & Time (Primary Reminder / Due Time)
+    // Visual & Organization
+    val icon: String? = null,
+    val colorHex: String? = null,
+    val isPinned: Boolean = false,
+    val selectedGroupId: String? = null,
+    val selectedTags: List<String> = emptyList(),
+    val subtasks: List<SubTask> = emptyList(),
+
+    // Autocomplete search queries
+    val groupSearchQuery: String = "",
+    val tagSearchQuery: String = "",
+
+    // Icon & Color Picker States
+    val showIconPicker: Boolean = false,
+    val showColorPicker: Boolean = false,
+
+    // Date & Time
     val selectedDate: LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault()),
     val selectedTime: LocalTime = LocalTime(9, 0),
     val hasSpecificTime: Boolean = true,
@@ -29,9 +46,9 @@ data class CreateReminderState(
     val showDeadlineDatePicker: Boolean = false,
     val showDeadlineTimePicker: Boolean = false,
 
-    // Reminder Time (when to notify)
+    // Reminder Time
     val reminderTimeMode: ReminderTimeMode = ReminderTimeMode.AT_DUE_TIME,
-    val beforeDueOffset: Long = 3600000L, // 1 hour in ms
+    val beforeDueOffset: Long = 3600000L,
     val customReminderDate: LocalDate? = null,
     val customReminderTime: LocalTime? = null,
     val showCustomReminderDatePicker: Boolean = false,
@@ -46,18 +63,20 @@ data class CreateReminderState(
     val showRecurrencePicker: Boolean = false,
     val recurrenceText: String = "Never",
 
-    // ✅ MERGED: Custom Recurrence State
-    val customRecurrenceMode: Boolean = false,  // Shows custom UI in modal
+    // Custom Recurrence State
+    val customRecurrenceMode: Boolean = false,
     val recurrenceFrequency: RecurrenceFrequency = RecurrenceFrequency.WEEKLY,
     val recurrenceInterval: Int = 1,
-    val recurrenceSelectedDays: Set<Int> = emptySet(), // 1=Mon, 7=Sun
-    val recurrenceDayOfMonth: Int = 1,  // For Monthly
-    val recurrenceMonth: Int = 1,       // For Yearly
+    val recurrenceSelectedDays: Set<Int> = emptySet(),
+    val recurrenceDayOfMonth: Int = 1,
+    val recurrenceMonth: Int = 1,
     val recurrenceEndMode: RecurrenceEndMode = RecurrenceEndMode.NEVER,
     val recurrenceEndDate: Long? = null,
     val recurrenceOccurrenceCount: Int? = null,
     val recurrenceFromCompletion: Boolean = false,
     val showRecurrenceEndDatePicker: Boolean = false,
+
+    val subtaskInput: String = "",
 
     // UI State
     val isEditing: Boolean = false,
@@ -105,12 +124,10 @@ enum class RecurrenceType {
     NONE, DAILY, WEEKLY, MONTHLY, CUSTOM
 }
 
-// ✅ MERGED: Frequency enum
 enum class RecurrenceFrequency {
     DAILY, WEEKLY, MONTHLY, YEARLY
 }
 
-// ✅ MERGED: End mode enum
 enum class RecurrenceEndMode {
     NEVER, DATE, COUNT
 }

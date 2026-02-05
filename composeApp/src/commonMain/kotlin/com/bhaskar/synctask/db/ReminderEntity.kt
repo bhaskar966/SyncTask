@@ -9,7 +9,9 @@ import androidx.room.Index
     indices = [
         Index("userId", "status"),
         Index("dueTime"),
-        Index("isSynced")
+        Index("isSynced"),
+        Index("groupId"),
+        Index("isPinned")
     ]
 )
 data class ReminderEntity(
@@ -38,5 +40,11 @@ data class ReminderEntity(
     val lastModified: Long,
     val completedAt: Long?,
     val deviceId: String?,
-    val isSynced: Boolean
+    val isSynced: Boolean,
+    val groupId: String?,
+    val tagIds: String?,
+    val icon: String?,
+    val colorHex: String?,
+    val isPinned: Boolean,
+    val subtasks: String?
 )

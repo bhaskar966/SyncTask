@@ -1,4 +1,4 @@
-package com.bhaskar.synctask.presentation.create.components.ui_components
+package com.bhaskar.synctask.presentation.create.ui_components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -91,7 +91,6 @@ fun PriorityChip(
 
     Box(
         modifier = Modifier
-            //.weight(1f) // Should be used in Row w/ weight if needed
             .height(40.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(containerColor)
@@ -115,7 +114,7 @@ fun <T> ScrollableRowOfChips(
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    androidx.compose.foundation.layout.FlowRow(
+    FlowRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)

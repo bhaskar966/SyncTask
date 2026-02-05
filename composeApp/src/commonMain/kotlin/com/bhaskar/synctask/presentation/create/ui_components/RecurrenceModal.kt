@@ -1,4 +1,4 @@
-package com.bhaskar.synctask.presentation.create.components.ui_components
+package com.bhaskar.synctask.presentation.create.ui_components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -41,7 +41,7 @@ fun RecurrenceModal(
     startDate: LocalDate,
     onDismissRequest: () -> Unit,
     onRecurrenceSelected: (RecurrenceRule?) -> Unit,
-    onCustomSelected: () -> Unit,  // ✅ This will now just close modal and show inline
+    onCustomSelected: () -> Unit,
     currentRule: RecurrenceRule?
 ) {
     val sheetState = rememberModalBottomSheetState()

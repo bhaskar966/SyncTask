@@ -15,4 +15,9 @@ interface ReminderRepository {
     suspend fun sync()
     suspend fun dismissReminder(id: String)
     suspend fun rescheduleReminder(id: String, newDueTime: Long, newReminderTime: Long?)
+    fun getRemindersByGroup(userId: String, groupId: String): Flow<List<Reminder>>
+    fun getUngroupedReminders(userId: String): Flow<List<Reminder>>
+    suspend fun getReminderCountByGroup(groupId: String): Int
+    suspend fun getActiveReminderCount(userId: String): Int
+    suspend fun getPinnedReminderCount(userId: String): Int
 }

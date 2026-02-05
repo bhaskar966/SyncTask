@@ -72,9 +72,28 @@ class ReminderRepositoryImpl(
         try {
             firestoreDataSource.getReminders(userId).collect { cloudReminders ->
                 println("☁️ Received ${cloudReminders.size} reminders from Firestore")
+
+                // 🔥 STEP 1: Create a set of cloud reminder IDs for quick lookup
+                val cloudReminderIds = cloudReminders.map { it.id }.toSet()
+                println("📋 Cloud reminder IDs: $cloudReminderIds")
+
+                // 🔥 STEP 2: Get all local reminders and delete ones not in cloud
+                val localReminders = dao.getAllReminders(userId).first()
+                println("📱 Found ${localReminders.size} local reminders")
+
+                localReminders.forEach { localEntity ->
+                    if (localEntity.id !in cloudReminderIds) {
+                        println("🗑️ Deleting reminder from local DB (deleted from cloud): ${localEntity.title}")
+                        dao.deleteReminder(localEntity.id)
+                        withContext(Dispatchers.Main) {
+                            notificationScheduler.cancelNotification(localEntity.id)
+                        }
+                    }
+                }
+
+                // 🔥 STEP 3: Process cloud reminders (add/update)
                 cloudReminders.forEach { cloudReminder ->
                     val localReminder = dao.getReminderById(cloudReminder.id).firstOrNull()
-
                     if (localReminder == null) {
                         // New reminder from cloud
                         println("📥 New from cloud: ${cloudReminder.title}")
@@ -82,12 +101,11 @@ class ReminderRepositoryImpl(
                     } else {
                         // Resolve conflicts (last-write-wins based on lastModified)
                         val local = localReminder.toDomain()
-
                         if (cloudReminder.lastModified > local.lastModified) {
                             println("📥 Update from cloud: ${cloudReminder.title}")
                             dao.insertReminder(cloudReminder.copy(isSynced = true).toEntity())
 
-                            // ✅ FIX: Cancel notification if status changed to completed/dismissed
+                            // Cancel notification if status changed to completed/dismissed
                             if (cloudReminder.status == ReminderStatus.COMPLETED ||
                                 cloudReminder.status == ReminderStatus.DISMISSED) {
                                 println("🗑️ Cancelling notification for ${cloudReminder.id}")
@@ -108,6 +126,7 @@ class ReminderRepositoryImpl(
             }
         } catch (e: Exception) {
             println("❌ Firestore sync error: ${e.message}")
+            e.printStackTrace()
         }
     }
 
@@ -342,6 +361,33 @@ class ReminderRepositoryImpl(
         syncToCloud(missed)
         println("❌ Marked as MISSED: ${reminder.title}")
     }
+
+    override fun getRemindersByGroup(userId: String, groupId: String): Flow<List<Reminder>> {
+        return dao.getRemindersByGroup(userId, groupId)
+            .map { entities -> entities.map { it.toDomain() } }
+            .flowOn(Dispatchers.IO)
+    }
+
+    override fun getUngroupedReminders(userId: String): Flow<List<Reminder>> {
+        return dao.getUngroupedReminders(userId)
+            .map { entities -> entities.map { it.toDomain() } }
+            .flowOn(Dispatchers.IO)
+    }
+
+    override suspend fun getReminderCountByGroup(groupId: String): Int =
+        withContext(Dispatchers.IO) {
+            dao.getReminderCountByGroup(groupId)
+        }
+
+    override suspend fun getActiveReminderCount(userId: String): Int =
+        withContext(Dispatchers.IO) {
+            dao.getActiveReminderCount(userId)
+        }
+
+    override suspend fun getPinnedReminderCount(userId: String): Int =
+        withContext(Dispatchers.IO) {
+            dao.getPinnedReminderCount(userId)
+        }
 
     internal suspend fun handleNotificationDelivered(reminderId: String, isPreReminder: Boolean) {
         withContext(Dispatchers.IO) {

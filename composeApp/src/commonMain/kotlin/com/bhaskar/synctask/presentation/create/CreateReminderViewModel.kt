@@ -1,50 +1,60 @@
+@file:OptIn(ExperimentalCoroutinesApi::class, ExperimentalUuidApi::class)
+
 package com.bhaskar.synctask.presentation.create
 
-import com.bhaskar.synctask.presentation.create.components.CreateReminderEvent
-import com.bhaskar.synctask.presentation.create.components.CreateReminderState
-import com.bhaskar.synctask.presentation.create.components.ReminderTimeMode
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bhaskar.synctask.data.auth.AuthManager
+import com.bhaskar.synctask.data.auth.AuthState
 import com.bhaskar.synctask.domain.RecurrenceUtils
-import com.bhaskar.synctask.domain.model.RecurrenceRule
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.firstOrNull
-import com.bhaskar.synctask.presentation.utils.toLocalDateTime
-import kotlinx.datetime.LocalTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toInstant
-import kotlinx.datetime.atTime
-import kotlinx.datetime.isoDayNumber
-import kotlinx.datetime.todayIn
-import kotlin.time.Clock
-import com.bhaskar.synctask.domain.repository.ReminderRepository
 import com.bhaskar.synctask.domain.generateUUID
-import com.bhaskar.synctask.domain.model.Reminder
-import com.bhaskar.synctask.domain.model.ReminderStatus
-import com.bhaskar.synctask.presentation.create.components.RecurrenceEndMode
-import com.bhaskar.synctask.presentation.create.components.RecurrenceFrequency
-import com.bhaskar.synctask.presentation.create.components.RecurrenceType
+import com.bhaskar.synctask.domain.model.*
+import com.bhaskar.synctask.domain.repository.ReminderRepository
+import com.bhaskar.synctask.domain.repository.GroupRepository
+import com.bhaskar.synctask.domain.repository.TagRepository
+import com.bhaskar.synctask.presentation.create.components.*
 import com.bhaskar.synctask.presentation.list.ui_components.formatRecurrence
 import com.bhaskar.synctask.presentation.utils.atStartOfDay
+import com.bhaskar.synctask.presentation.utils.toLocalDateTime
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.atStartOfDayIn
-import kotlinx.datetime.number
+import kotlinx.datetime.*
+import kotlin.time.Clock
 import kotlin.time.Instant
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 class CreateReminderViewModel(
-    private val reminderRepository: ReminderRepository
+    private val reminderRepository: ReminderRepository,
+    private val groupRepository: GroupRepository,
+    private val tagRepository: TagRepository,
+    private val authManager: AuthManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CreateReminderState())
     val state = _state.asStateFlow()
 
     private var editingReminderId: String? = null
+
+    // ✅ Expose groups from repository
+    val groups: StateFlow<List<ReminderGroup>> = authManager.authState
+        .flatMapLatest { state ->
+            val userId = if (state is AuthState.Authenticated) state.uid else "anonymous"
+            groupRepository.getGroups(userId)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // ✅ Expose tags from repository
+    val tags: StateFlow<List<Tag>> = authManager.authState
+        .flatMapLatest { state ->
+            val userId = if (state is AuthState.Authenticated) state.uid else "anonymous"
+            tagRepository.getTags(userId)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         resetState()
@@ -70,6 +80,171 @@ class CreateReminderViewModel(
                 _state.update { it.copy(description = event.description) }
             }
 
+            // ✅ Visual & Organization
+            is CreateReminderEvent.OnIconSelected -> {
+                _state.update { it.copy(icon = event.icon) }
+            }
+
+            is CreateReminderEvent.OnColorSelected -> {
+                _state.update { it.copy(colorHex = event.color) }
+            }
+
+            is CreateReminderEvent.OnPinToggled -> {
+                _state.update { it.copy(isPinned = event.pinned) }
+            }
+
+            // ✅ Group autocomplete
+            is CreateReminderEvent.OnGroupSearchQueryChanged -> {
+                _state.update { it.copy(groupSearchQuery = event.query) }
+            }
+
+            is CreateReminderEvent.OnGroupSelected -> {
+                _state.update {
+                    it.copy(
+                        selectedGroupId = event.groupId,
+                        groupSearchQuery = ""
+                    )
+                }
+            }
+
+            is CreateReminderEvent.OnCreateGroup -> {
+                val groupName = event.name.trim()
+                if (groupName.isBlank()) return
+
+                // Check if group already exists
+                if (groups.value.any { it.name.equals(groupName, ignoreCase = true) }) {
+                    return
+                }
+
+                viewModelScope.launch(Dispatchers.IO) {
+                    try {
+                        val newGroup = ReminderGroup(
+                            id = Uuid.random().toString(),
+                            userId = "", // Set by repository
+                            name = groupName,
+                            icon = "📁",
+                            colorHex = "#6366F1",
+                            order = groups.value.size,
+                            createdAt = Clock.System.now().toEpochMilliseconds(),
+                            lastModified = Clock.System.now().toEpochMilliseconds(),
+                            isSynced = false
+                        )
+                        groupRepository.createGroup(newGroup)
+
+                        withContext(Dispatchers.Main) {
+                            _state.update {
+                                it.copy(
+                                    selectedGroupId = newGroup.id,
+                                    groupSearchQuery = ""
+                                )
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("❌ Failed to create group: ${e.message}")
+                    }
+                }
+            }
+
+            // ✅ Tag autocomplete
+            is CreateReminderEvent.OnTagSearchQueryChanged -> {
+                _state.update { it.copy(tagSearchQuery = event.query) }
+            }
+
+            is CreateReminderEvent.OnTagToggled -> {
+                println("🏷️ ViewModel - OnTagToggled called with tagId: ${event.tagId}")
+                println("🏷️ ViewModel - Current selectedTags: ${_state.value.selectedTags}")
+
+                val newSelectedTags = if (_state.value.selectedTags.contains(event.tagId)) {
+                    println("🏷️ ViewModel - Removing tag: ${event.tagId}")
+                    _state.value.selectedTags - event.tagId
+                } else {
+                    println("🏷️ ViewModel - Adding tag: ${event.tagId}")
+                    _state.value.selectedTags + event.tagId
+                }
+
+                println("🏷️ ViewModel - New selectedTags: $newSelectedTags")
+                _state.update { it.copy(selectedTags = newSelectedTags) }
+            }
+
+            is CreateReminderEvent.OnCreateTag -> {
+                val tagName = event.name.trim()
+                if (tagName.isBlank()) return
+
+                // Check if tag already exists
+                if (tags.value.any { it.name.equals(tagName, ignoreCase = true) }) {
+                    return
+                }
+
+                viewModelScope.launch(Dispatchers.IO) {
+                    try {
+                        val newTag = Tag(
+                            id = Uuid.random().toString(),
+                            userId = "", // Set by repository
+                            name = tagName,
+                            colorHex = "#6366F1",
+                            createdAt = Clock.System.now().toEpochMilliseconds(),
+                            isSynced = false
+                        )
+                        tagRepository.createTag(newTag)
+
+                        withContext(Dispatchers.Main) {
+                            _state.update {
+                                it.copy(
+                                    selectedTags = it.selectedTags + newTag.id,
+                                    tagSearchQuery = ""
+                                )
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("❌ Failed to create tag: ${e.message}")
+                    }
+                }
+            }
+
+            // ✅ Subtasks
+            is CreateReminderEvent.OnSubtaskInputChanged -> {
+                _state.update { it.copy(subtaskInput = event.input) }
+            }
+
+            CreateReminderEvent.OnAddSubtask -> {
+                val input = _state.value.subtaskInput.trim()
+                if (input.isBlank()) return
+
+                val newSubtask = SubTask(
+                    id = Uuid.random().toString(),
+                    title = input,
+                    isCompleted = false,
+                    order = _state.value.subtasks.size
+                )
+                _state.update {
+                    it.copy(
+                        subtasks = it.subtasks + newSubtask,
+                        subtaskInput = ""
+                    )
+                }
+            }
+
+            is CreateReminderEvent.OnSubtaskToggled -> {
+                _state.update {
+                    it.copy(
+                        subtasks = it.subtasks.map { subtask ->
+                            if (subtask.id == event.subtaskId) {
+                                subtask.copy(isCompleted = !subtask.isCompleted)
+                            } else {
+                                subtask
+                            }
+                        }
+                    )
+                }
+            }
+
+            is CreateReminderEvent.OnSubtaskDeleted -> {
+                _state.update {
+                    it.copy(subtasks = it.subtasks.filter { st -> st.id != event.subtaskId })
+                }
+            }
+
+            // Date & Time
             is CreateReminderEvent.OnDateSelected -> {
                 _state.update {
                     val newDate = event.date
@@ -79,29 +254,25 @@ class CreateReminderViewModel(
                     if (rule != null) {
                         rule = when (rule) {
                             is RecurrenceRule.Weekly -> {
-                                // If previously Weekly on the old day (single day), update to new day
-                                if (rule.interval == 1 && rule.daysOfWeek.size == 1 && rule.daysOfWeek.first() == oldDate.dayOfWeek.isoDayNumber) {
+                                if (rule.interval == 1 && rule.daysOfWeek.size == 1 &&
+                                    rule.daysOfWeek.first() == oldDate.dayOfWeek.isoDayNumber) {
                                     rule.copy(daysOfWeek = listOf(newDate.dayOfWeek.isoDayNumber))
                                 } else rule
                             }
-
                             is RecurrenceRule.Monthly -> {
-                                // If previously Monthly on the old day, update to new day
                                 if (rule.interval == 1 && rule.dayOfMonth == oldDate.day) {
                                     rule.copy(dayOfMonth = newDate.day)
                                 } else rule
                             }
-
                             is RecurrenceRule.Yearly -> {
-                                // If previously Yearly on old date, update to new date
-                                if (rule.interval == 1 && rule.month == oldDate.month.number && rule.dayOfMonth == oldDate.day) {
+                                if (rule.interval == 1 && rule.month == oldDate.month.number &&
+                                    rule.dayOfMonth == oldDate.day) {
                                     rule.copy(
                                         month = newDate.month.number,
                                         dayOfMonth = newDate.day
                                     )
                                 } else rule
                             }
-
                             else -> rule
                         }
                     }
@@ -110,9 +281,7 @@ class CreateReminderViewModel(
                         selectedDate = newDate,
                         showDatePicker = false,
                         recurrence = rule,
-                        recurrenceText = com.bhaskar.synctask.domain.RecurrenceUtils.formatRecurrenceRule(
-                            rule
-                        )
+                        recurrenceText = RecurrenceUtils.formatRecurrenceRule(rule)
                     )
                 }
             }
@@ -170,15 +339,12 @@ class CreateReminderViewModel(
                         recurrence = event.recurrence,
                         recurrenceType = if (event.recurrence != null) RecurrenceType.CUSTOM else RecurrenceType.NONE,
                         showRecurrencePicker = false,
-                        recurrenceText = com.bhaskar.synctask.domain.RecurrenceUtils.formatRecurrenceRule(
-                            event.recurrence
-                        )
+                        recurrenceText = RecurrenceUtils.formatRecurrenceRule(event.recurrence)
                     )
                 }
-
                 populateCustomRecurrenceFromRule(event.recurrence)
             }
-            // Deadline
+
             is CreateReminderEvent.OnDeadlineDateSelected -> {
                 _state.update { it.copy(deadlineDate = event.date, showDeadlineDatePicker = false) }
             }
@@ -191,17 +357,14 @@ class CreateReminderViewModel(
                 _state.update {
                     it.copy(
                         isDeadlineEnabled = event.enabled,
-                        deadlineDate = if (event.enabled && it.deadlineDate == null) Clock.System.todayIn(
-                            TimeZone.currentSystemDefault()
-                        ) else it.deadlineDate,
-                        deadlineTime = if (event.enabled && it.deadlineTime == null) LocalTime(
-                            0,
-                            0
-                        ) else it.deadlineTime
+                        deadlineDate = if (event.enabled && it.deadlineDate == null)
+                            Clock.System.todayIn(TimeZone.currentSystemDefault()) else it.deadlineDate,
+                        deadlineTime = if (event.enabled && it.deadlineTime == null)
+                            LocalTime(0, 0) else it.deadlineTime
                     )
                 }
             }
-            // Dialog Toggles
+
             CreateReminderEvent.OnToggleDatePicker -> {
                 _state.update { it.copy(showDatePicker = !it.showDatePicker) }
             }
@@ -234,11 +397,10 @@ class CreateReminderViewModel(
                 saveReminder()
             }
 
-            is CreateReminderEvent.OnCustomRecurrenceToggled -> {
+            CreateReminderEvent.OnCustomRecurrenceToggled -> {
                 _state.update {
                     it.copy(
                         customRecurrenceMode = !it.customRecurrenceMode,
-                        // ✅ Initialize with current date info if toggling on for the first time
                         recurrenceDayOfMonth = if (!it.customRecurrenceMode && it.recurrence == null) {
                             it.selectedDate.day
                         } else {
@@ -310,19 +472,23 @@ class CreateReminderViewModel(
                 buildCustomRecurrenceRule()
             }
 
-            is CreateReminderEvent.OnToggleRecurrenceEndDatePicker -> {
+            CreateReminderEvent.OnToggleRecurrenceEndDatePicker -> {
                 _state.update { it.copy(showRecurrenceEndDatePicker = !it.showRecurrenceEndDatePicker) }
             }
 
-//            is CreateReminderEvent.OnCustomRecurrenceApply -> {
-//                buildCustomRecurrenceRule()
-//                _state.update { it.copy(customRecurrenceMode = false) }
-//            }
+            CreateReminderEvent.OnToggleIconPicker -> {
+                _state.update { it.copy(showIconPicker = !it.showIconPicker) }
+            }
+
+            CreateReminderEvent.OnToggleColorPicker -> {
+                _state.update { it.copy(showColorPicker = !it.showColorPicker) }
+            }
         }
     }
 
     private fun saveReminder() {
-        viewModelScope.launch(Dispatchers.IO) { // ✅ IO dispatcher
+
+        viewModelScope.launch(Dispatchers.IO) {
             val error = validateState(state.value)
             if (error != null) {
                 withContext(Dispatchers.Main) {
@@ -331,8 +497,18 @@ class CreateReminderViewModel(
                 return@launch
             }
 
-            val currentState = state.value
+            println("💾 OnSave - State before validation:")
+            println("💾 - title: ${_state.value.title}")
+            println("💾 - selectedTags: ${_state.value.selectedTags}")
+            println("💾 - selectedGroupId: ${_state.value.selectedGroupId}")
+            println("💾 - subtasks: ${_state.value.subtasks}")
 
+            if (_state.value.title.isBlank()) {
+                _state.update { it.copy(validationError = "Title is required") }
+                return@launch
+            }
+
+            val currentState = state.value
             withContext(Dispatchers.Main) {
                 _state.update { it.copy(isSaving = true) }
             }
@@ -341,7 +517,7 @@ class CreateReminderViewModel(
                 val now = Clock.System.now().toEpochMilliseconds()
                 val reminder = Reminder(
                     id = editingReminderId ?: generateUUID(),
-                    userId = "user_1",
+                    userId = authManager.currentUserId ?: "anonymous",
                     title = currentState.title,
                     description = currentState.description.takeIf { it.isNotBlank() },
                     dueTime = currentState.getDueTime(),
@@ -350,12 +526,23 @@ class CreateReminderViewModel(
                     status = ReminderStatus.ACTIVE,
                     priority = currentState.priority,
                     recurrence = currentState.recurrence,
+                    icon = currentState.icon,
+                    colorHex = currentState.colorHex,
+                    isPinned = currentState.isPinned,
+                    groupId = currentState.selectedGroupId,
+                    tagIds = currentState.selectedTags,
+                    subtasks = currentState.subtasks,
                     targetRemindCount = currentState.recurrence?.occurrenceCount,
                     currentReminderCount = if (currentState.recurrence != null) 1 else null,
                     createdAt = now,
                     lastModified = now,
                     isSynced = false
                 )
+
+                println("💾 Reminder object created:")
+                println("💾 - tagIds: ${reminder.tagIds}")
+                println("💾 - groupId: ${reminder.groupId}")
+                println("💾 - subtasks: ${reminder.subtasks}")
 
                 if (editingReminderId != null) {
                     reminderRepository.updateReminder(reminder)
@@ -364,11 +551,9 @@ class CreateReminderViewModel(
                 }
 
                 println("✅ Reminder saved!")
-
                 withContext(Dispatchers.Main) {
                     _state.update { it.copy(isSaving = false) }
                 }
-
             } catch (e: Exception) {
                 println("❌ Error: ${e.message}")
                 withContext(Dispatchers.Main) {
@@ -379,7 +564,7 @@ class CreateReminderViewModel(
     }
 
     fun loadReminder(id: String) {
-        viewModelScope.launch(Dispatchers.IO) { // ✅ IO dispatcher
+        viewModelScope.launch(Dispatchers.IO) {
             val reminder = reminderRepository.getReminderById(id).firstOrNull() ?: return@launch
             editingReminderId = reminder.id
 
@@ -401,14 +586,21 @@ class CreateReminderViewModel(
                         recurrenceText = RecurrenceUtils.formatRecurrenceRule(reminder.recurrence),
                         isDeadlineEnabled = reminder.deadline != null,
                         deadlineDate = reminder.deadline?.let { dl ->
-                            Instant.fromEpochMilliseconds(dl).toLocalDateTime(TimeZone.currentSystemDefault()).date
+                            Instant.fromEpochMilliseconds(dl)
+                                .toLocalDateTime(TimeZone.currentSystemDefault()).date
                         },
                         deadlineTime = reminder.deadline?.let { dl ->
-                            Instant.fromEpochMilliseconds(dl).toLocalDateTime(TimeZone.currentSystemDefault()).time
-                        }
+                            Instant.fromEpochMilliseconds(dl)
+                                .toLocalDateTime(TimeZone.currentSystemDefault()).time
+                        },
+                        icon = reminder.icon,
+                        colorHex = reminder.colorHex,
+                        isPinned = reminder.isPinned,
+                        selectedGroupId = reminder.groupId,
+                        selectedTags = reminder.tagIds,
+                        subtasks = reminder.subtasks
                     )
                 }
-
                 populateCustomRecurrenceFromRule(reminder.recurrence)
             }
         }
@@ -483,15 +675,12 @@ class CreateReminderViewModel(
             it.copy(
                 recurrence = rule,
                 recurrenceText = formatRecurrence(rule)
-                // ✅ NO LONGER CLOSING customRecurrenceMode here
             )
         }
     }
 
     private fun populateCustomRecurrenceFromRule(rule: RecurrenceRule?) {
-        if (rule == null) {
-            return
-        }
+        if (rule == null) return
 
         when (rule) {
             is RecurrenceRule.Daily -> {
@@ -565,7 +754,7 @@ class CreateReminderViewModel(
             is RecurrenceRule.CustomDays -> {
                 _state.update {
                     it.copy(
-                        recurrenceFrequency = RecurrenceFrequency.WEEKLY,  // Treat as weekly
+                        recurrenceFrequency = RecurrenceFrequency.WEEKLY,
                         recurrenceInterval = rule.interval,
                         recurrenceSelectedDays = rule.daysOfWeek.toSet(),
                         recurrenceEndMode = when {
@@ -581,5 +770,4 @@ class CreateReminderViewModel(
             }
         }
     }
-
 }

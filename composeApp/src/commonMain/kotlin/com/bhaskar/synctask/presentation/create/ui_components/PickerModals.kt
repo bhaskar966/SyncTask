@@ -1,4 +1,4 @@
-package com.bhaskar.synctask.presentation.create.components.ui_components
+package com.bhaskar.synctask.presentation.create.ui_components
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable

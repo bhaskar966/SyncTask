@@ -1,4 +1,4 @@
-package com.bhaskar.synctask.presentation.create.components.ui_components
+package com.bhaskar.synctask.presentation.create.ui_components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically

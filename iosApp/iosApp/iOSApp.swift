@@ -154,14 +154,15 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     }
 
     private func handleFCMMessage(_ userInfo: [AnyHashable: Any]) {
-        print("📬 iOS: Processing FCM message: \(userInfo)")
         guard let reminderId = userInfo["reminderId"] as? String,
         let action = userInfo["action"] as? String else {
-            print("⚠️ iOS: Invalid FCM message format - missing reminderId or action")
+            print("⚠️ iOS: Invalid FCM message - missing reminderId or action")
             return
         }
 
         print("📬 iOS: FCM Action=\(action), ReminderId=\(reminderId)")
+
+        // Use SwiftFCMBridge to handle
         SwiftFCMBridge.shared.handleFCMMessage(reminderId: reminderId, action: action)
     }
 

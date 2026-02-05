@@ -20,6 +20,7 @@ import com.bhaskar.synctask.presentation.create.CreateReminderScreen
 import com.bhaskar.synctask.presentation.create.CreateReminderViewModel
 import com.bhaskar.synctask.presentation.detail.ReminderDetailViewModel
 import com.bhaskar.synctask.presentation.list.ReminderListViewModel
+import com.bhaskar.synctask.presentation.navigation.BottomNavHost
 import com.bhaskar.synctask.presentation.settings.SettingsScreen
 import com.bhaskar.synctask.presentation.utils.MainRoutes
 import org.koin.compose.viewmodel.koinViewModel
@@ -29,7 +30,6 @@ import org.koin.compose.koinInject
 fun App() {
     val authManager: AuthManager = koinInject()
     val authState by authManager.authState.collectAsState()
-
     val notificationScheduler: NotificationScheduler = koinInject()
 
     LaunchedEffect(Unit) {
@@ -43,7 +43,6 @@ fun App() {
         ) {
             when (authState) {
                 is AuthState.Loading -> {
-                    // Show loading indicator while checking auth
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -52,7 +51,6 @@ fun App() {
                     }
                 }
                 is AuthState.Unauthenticated -> {
-                    // Show login screen if not authenticated
                     LoginScreen(
                         onLoginSuccess = {
                             // Auth state will change automatically
@@ -60,7 +58,6 @@ fun App() {
                     )
                 }
                 is AuthState.Authenticated -> {
-                    // Show main app content when authenticated
                     MainAppContent(notificationScheduler)
                 }
             }
@@ -71,34 +68,29 @@ fun App() {
 @Composable
 private fun MainAppContent(notificationScheduler: NotificationScheduler) {
     val navController = rememberNavController()
+
+    // ViewModels initialized once at top level
     val createReminderViewModel: CreateReminderViewModel = koinViewModel()
     val createReminderState by createReminderViewModel.state.collectAsState()
+    val groups by createReminderViewModel.groups.collectAsState()
+    val tags by createReminderViewModel.tags.collectAsState()
+
     val reminderDetailViewModel: ReminderDetailViewModel = koinViewModel()
     val reminderDetailState by reminderDetailViewModel.state.collectAsState()
-    val reminderListViewModel: ReminderListViewModel = koinViewModel()
-    val reminderListState by reminderListViewModel.state.collectAsState()
 
     NavHost(
         navController = navController,
-        startDestination = MainRoutes.ReminderListScreen,
+        startDestination = MainRoutes.BottomNavHost,
         modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars)
     ) {
-        composable<MainRoutes.ReminderListScreen> {
-            ReminderListScreen(
-                reminderListState = reminderListState,
-                onReminderScreenEvent = reminderListViewModel::onEvent,
-                onNavigateToCreate = {
-                    navController.navigate(MainRoutes.CreateReminderScreen())
-                },
-                onNavigateToDetail = { reminderId ->
-                    navController.navigate(MainRoutes.ReminderDetailScreen(reminderId))
-                },
-                onNavigateToSettings = {
-                    navController.navigate(MainRoutes.SettingsScreen)
-                }
+        // Bottom Navigation Host (contains the 3 tabs)
+        composable<MainRoutes.BottomNavHost> {
+            BottomNavHost(
+                mainNavController = navController
             )
         }
 
+        // Create/Edit Reminder Screen
         composable<MainRoutes.CreateReminderScreen> { backStackEntry ->
             val args = backStackEntry.toRoute<MainRoutes.CreateReminderScreen>()
             val reminderId = args.id
@@ -112,8 +104,10 @@ private fun MainAppContent(notificationScheduler: NotificationScheduler) {
             }
 
             CreateReminderScreen(
-                createReminderState = createReminderState,
-                onCreateReminderEvent = createReminderViewModel::onEvent,
+                state = createReminderState,
+                onEvent = createReminderViewModel::onEvent,
+                groups = groups,
+                tags = tags,
                 onNavigateBack = {
                     navController.popBackStack()
                 },
@@ -124,6 +118,7 @@ private fun MainAppContent(notificationScheduler: NotificationScheduler) {
             )
         }
 
+        // Reminder Detail Screen
         composable<MainRoutes.ReminderDetailScreen> { navBackStackEntry ->
             val reminderId = navBackStackEntry.toRoute<MainRoutes.ReminderDetailScreen>().id
 
@@ -145,6 +140,7 @@ private fun MainAppContent(notificationScheduler: NotificationScheduler) {
             )
         }
 
+        // Settings Screen
         composable<MainRoutes.SettingsScreen> {
             SettingsScreen(
                 onNavigateBack = {

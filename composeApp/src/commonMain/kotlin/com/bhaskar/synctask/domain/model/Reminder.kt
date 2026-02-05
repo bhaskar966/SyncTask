@@ -11,7 +11,7 @@ data class Reminder(
     val dueTime: Long,
     val deadline: Long? = null,
     val reminderTime: Long? = null,
-    val targetRemindCount: Int? = null, 
+    val targetRemindCount: Int? = null,
     val currentReminderCount: Int? = null,
     val status: ReminderStatus = ReminderStatus.ACTIVE,
     val priority: Priority = Priority.MEDIUM,
@@ -21,5 +21,11 @@ data class Reminder(
     val lastModified: Long,
     val completedAt: Long? = null,
     val deviceId: String? = null,
-    val isSynced: Boolean = false
+    val isSynced: Boolean = false,
+    val groupId: String? = null,
+    val tagIds: List<String> = emptyList(),
+    val icon: String? = null,
+    val colorHex: String? = null,
+    val isPinned: Boolean = false,
+    val subtasks: List<SubTask> = emptyList()
 )

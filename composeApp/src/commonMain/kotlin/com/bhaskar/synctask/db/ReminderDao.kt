@@ -38,4 +38,37 @@ interface ReminderDao {
 
     @Query("DELETE FROM SyncQueueEntity WHERE id = :id")
     suspend fun removeFromQueue(id: Long)
+
+
+    // Get reminders by group
+    @Query("SELECT * FROM ReminderEntity WHERE userId = :userId AND groupId = :groupId AND status = 'ACTIVE' ORDER BY isPinned DESC, dueTime ASC")
+    fun getRemindersByGroup(userId: String, groupId: String): Flow<List<ReminderEntity>>
+
+    // Get pinned reminders
+    @Query("SELECT * FROM ReminderEntity WHERE userId = :userId AND isPinned = 1 AND status = 'ACTIVE' ORDER BY dueTime ASC")
+    fun getPinnedReminders(userId: String): Flow<List<ReminderEntity>>
+
+    // Count pinned reminders (for premium gate)
+    @Query("SELECT COUNT(*) FROM ReminderEntity WHERE userId = :userId AND isPinned = 1 AND status = 'ACTIVE'")
+    suspend fun getPinnedCount(userId: String): Int
+
+    // Count active reminders (for premium gate)
+    @Query("SELECT COUNT(*) FROM ReminderEntity WHERE userId = :userId AND status = 'ACTIVE'")
+    suspend fun getActiveReminderCount(userId: String): Int
+
+    //  Get ungrouped reminders
+    @Query("SELECT * FROM ReminderEntity WHERE userId = :userId AND (groupId IS NULL OR groupId = '') AND status != 'COMPLETED' AND status != 'DISMISSED' ORDER BY dueTime ASC")
+    fun getUngroupedReminders(userId: String): Flow<List<ReminderEntity>>
+
+    // Get reminder count by group
+    @Query("SELECT COUNT(*) FROM ReminderEntity WHERE groupId = :groupId AND status != 'COMPLETED' AND status != 'DISMISSED'")
+    suspend fun getReminderCountByGroup(groupId: String): Int
+
+    // Get pinned reminder count
+    @Query("SELECT COUNT(*) FROM ReminderEntity WHERE userId = :userId AND isPinned = 1 AND status != 'COMPLETED' AND status != 'DISMISSED'")
+    suspend fun getPinnedReminderCount(userId: String): Int
+
+    // Unassign reminders from deleted group
+    @Query("UPDATE ReminderEntity SET groupId = NULL, isSynced = 0 WHERE groupId = :groupId")
+    suspend fun unassignRemindersFromGroup(groupId: String)
 }

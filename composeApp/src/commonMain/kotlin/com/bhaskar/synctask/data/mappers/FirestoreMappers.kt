@@ -1,13 +1,19 @@
 package com.bhaskar.synctask.data.mappers
 
+import com.bhaskar.synctask.domain.model.FirestoreGroup
 import com.bhaskar.synctask.domain.model.FirestoreRecurrence
 import com.bhaskar.synctask.domain.model.FirestoreReminder
+import com.bhaskar.synctask.domain.model.FirestoreSubTask
+import com.bhaskar.synctask.domain.model.FirestoreTag
 import com.bhaskar.synctask.domain.model.Reminder
 import com.bhaskar.synctask.domain.model.Priority
 import com.bhaskar.synctask.domain.model.ReminderStatus
 import com.bhaskar.synctask.domain.model.RecurrenceRule
+import com.bhaskar.synctask.domain.model.ReminderGroup
+import com.bhaskar.synctask.domain.model.SubTask
+import com.bhaskar.synctask.domain.model.Tag
 
-
+// REMINDER MAPPERS
 fun Reminder.toFirestoreReminder(): FirestoreReminder {
     return FirestoreReminder(
         id = id,
@@ -27,7 +33,13 @@ fun Reminder.toFirestoreReminder(): FirestoreReminder {
         lastModified = lastModified,
         completedAt = completedAt,
         deviceId = deviceId,
-        isSynced = true
+        isSynced = true,
+        groupId = groupId,
+        tagIds = tagIds,
+        icon = icon,
+        colorHex = colorHex,
+        isPinned = isPinned,
+        subtasks = subtasks.map { it.toFirestoreSubTask() }
     )
 }
 
@@ -51,10 +63,36 @@ fun FirestoreReminder.toReminder(): Reminder {
         lastModified = lastModified,
         completedAt = completedAt,
         deviceId = deviceId,
-        isSynced = true
+        isSynced = true,
+        groupId = groupId,
+        tagIds = tagIds,
+        icon = icon,
+        colorHex = colorHex,
+        isPinned = isPinned,
+        subtasks = subtasks.map { it.toSubTask() }
     )
 }
 
+// SUBTASK MAPPERS
+fun SubTask.toFirestoreSubTask(): FirestoreSubTask {
+    return FirestoreSubTask(
+        id = id,
+        title = title,
+        isCompleted = isCompleted,
+        order = order
+    )
+}
+
+fun FirestoreSubTask.toSubTask(): SubTask {
+    return SubTask(
+        id = id,
+        title = title,
+        isCompleted = isCompleted,
+        order = order
+    )
+}
+
+// RECURRENCE MAPPERS
 fun RecurrenceRule.toFirestoreRecurrence(): FirestoreRecurrence {
     return when (this) {
         is RecurrenceRule.Daily -> FirestoreRecurrence(
@@ -142,6 +180,7 @@ fun FirestoreRecurrence.toRecurrenceRule(): RecurrenceRule? {
 }
 
 
+// MAP-BASED MAPPERS (for direct Firestore operations)
 
 // Reminder → Firestore Map
 fun Reminder.toFirestoreMap(): Map<String, Any?> {
@@ -163,7 +202,13 @@ fun Reminder.toFirestoreMap(): Map<String, Any?> {
         "lastModified" to lastModified,
         "completedAt" to completedAt,
         "deviceId" to deviceId,
-        "isSynced" to true
+        "isSynced" to true,
+        "groupId" to groupId,
+        "tagIds" to tagIds,
+        "icon" to icon,
+        "colorHex" to colorHex,
+        "isPinned" to isPinned,
+        "subtasks" to subtasks.map { it.toMap() }
     )
 }
 
@@ -188,7 +233,34 @@ fun Map<String, Any?>.toReminder(): Reminder {
         lastModified = (this["lastModified"] as? Number)?.toLong() ?: 0L,
         completedAt = (this["completedAt"] as? Number)?.toLong(),
         deviceId = this["deviceId"] as? String,
-        isSynced = true
+        isSynced = true,
+        groupId = this["groupId"] as? String,
+        tagIds = (this["tagIds"] as? List<String>) ?: emptyList(),
+        icon = this["icon"] as? String,
+        colorHex = this["colorHex"] as? String,
+        isPinned = (this["isPinned"] as? Boolean) ?: false,
+        subtasks = (this["subtasks"] as? List<Map<String, Any?>>)?.map { it.toSubTask() } ?: emptyList()
+    )
+}
+
+// SubTask → Map
+fun SubTask.toMap(): Map<String, Any?> {
+    return mapOf(
+        "id" to id,
+        "title" to title,
+        "isCompleted" to isCompleted,
+        "order" to order
+    )
+}
+
+// Map → SubTask
+@Suppress("UNCHECKED_CAST")
+fun Map<String, Any?>.toSubTask(): SubTask {
+    return SubTask(
+        id = this["id"] as? String ?: "",
+        title = this["title"] as? String ?: "",
+        isCompleted = (this["isCompleted"] as? Boolean) ?: false,
+        order = (this["order"] as? Number)?.toInt() ?: 0
     )
 }
 
@@ -255,8 +327,8 @@ fun Map<String, Any?>.toRecurrenceRule(): RecurrenceRule? {
         )
         "WEEKLY" -> RecurrenceRule.Weekly(
             interval = (this["interval"] as? Number)?.toInt() ?: 1,
-            daysOfWeek = (this["daysOfWeek"] as? List<Number>)
-                ?.map { it.toInt() } ?: emptyList(),
+            daysOfWeek = (this["daysOfWeek"] as? List<*>)
+                ?.map { (it as? Number)?.toInt() ?: 0 } ?: emptyList(),
             afterCompletion = afterCompletion,
             endDate = endDate,
             occurrenceCount = occurrenceCount
@@ -277,8 +349,8 @@ fun Map<String, Any?>.toRecurrenceRule(): RecurrenceRule? {
             occurrenceCount = occurrenceCount
         )
         "CUSTOM_DAYS" -> RecurrenceRule.CustomDays(
-            daysOfWeek = (this["daysOfWeek"] as? List<Number>)
-                ?.map { it.toInt() } ?: emptyList(),
+            daysOfWeek = (this["daysOfWeek"] as? List<*>)
+                ?.map { (it as? Number)?.toInt() ?: 0 } ?: emptyList(),
             interval = (this["interval"] as? Number)?.toInt() ?: 1,
             afterCompletion = afterCompletion,
             endDate = endDate,
@@ -286,4 +358,104 @@ fun Map<String, Any?>.toRecurrenceRule(): RecurrenceRule? {
         )
         else -> null
     }
+}
+
+// GROUP MAPPERS
+fun ReminderGroup.toFirestoreGroup(): FirestoreGroup {
+    return FirestoreGroup(
+        id = id,
+        userId = userId,
+        name = name,
+        icon = icon,
+        colorHex = colorHex,
+        order = order,
+        createdAt = createdAt,
+        lastModified = lastModified
+    )
+}
+
+fun FirestoreGroup.toGroup(): ReminderGroup {
+    return ReminderGroup(
+        id = id,
+        userId = userId,
+        name = name,
+        icon = icon,
+        colorHex = colorHex,
+        order = order,
+        createdAt = createdAt,
+        lastModified = lastModified,
+        isSynced = true
+    )
+}
+
+fun ReminderGroup.toFirestoreMap(): Map<String, Any?> {
+    return mapOf(
+        "id" to id,
+        "userId" to userId,
+        "name" to name,
+        "icon" to icon,
+        "colorHex" to colorHex,
+        "order" to order,
+        "createdAt" to createdAt,
+        "lastModified" to lastModified
+    )
+}
+
+@Suppress("UNCHECKED_CAST")
+fun Map<String, Any?>.toGroup(): ReminderGroup {
+    return ReminderGroup(
+        id = this["id"] as? String ?: "",
+        userId = this["userId"] as? String ?: "",
+        name = this["name"] as? String ?: "",
+        icon = this["icon"] as? String ?: "📁",
+        colorHex = this["colorHex"] as? String ?: "#6366F1",
+        order = (this["order"] as? Number)?.toInt() ?: 0,
+        createdAt = (this["createdAt"] as? Number)?.toLong() ?: 0L,
+        lastModified = (this["lastModified"] as? Number)?.toLong() ?: 0L,
+        isSynced = true
+    )
+}
+
+// TAG MAPPERS
+fun Tag.toFirestoreTag(): FirestoreTag {
+    return FirestoreTag(
+        id = id,
+        userId = userId,
+        name = name,
+        colorHex = colorHex,
+        createdAt = createdAt
+    )
+}
+
+fun FirestoreTag.toTag(): Tag {
+    return Tag(
+        id = id,
+        userId = userId,
+        name = name,
+        colorHex = colorHex,
+        createdAt = createdAt,
+        isSynced = true
+    )
+}
+
+fun Tag.toFirestoreMap(): Map<String, Any?> {
+    return mapOf(
+        "id" to id,
+        "userId" to userId,
+        "name" to name,
+        "colorHex" to colorHex,
+        "createdAt" to createdAt
+    )
+}
+
+@Suppress("UNCHECKED_CAST")
+fun Map<String, Any?>.toTag(): Tag {
+    return Tag(
+        id = this["id"] as? String ?: "",
+        userId = this["userId"] as? String ?: "",
+        name = this["name"] as? String ?: "",
+        colorHex = this["colorHex"] as? String,
+        createdAt = (this["createdAt"] as? Number)?.toLong() ?: 0L,
+        isSynced = true
+    )
 }

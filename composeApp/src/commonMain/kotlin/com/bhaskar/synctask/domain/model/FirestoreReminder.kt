@@ -21,7 +21,13 @@ data class FirestoreReminder(
     val lastModified: Long = 0L,
     val completedAt: Long? = null,
     val deviceId: String? = null,
-    val isSynced: Boolean = true
+    val isSynced: Boolean = true,
+    val groupId: String? = null,
+    val tagIds: List<String> = emptyList(),
+    val icon: String? = null,
+    val colorHex: String? = null,
+    val isPinned: Boolean = false,
+    val subtasks: List<FirestoreSubTask> = emptyList()
 )
 
 @Serializable
@@ -37,4 +43,12 @@ data class FirestoreRecurrence(
     val dayOfMonth: Int? = null,
     // Yearly
     val month: Int? = null
+)
+
+@Serializable
+data class FirestoreSubTask(
+    val id: String = "",
+    val title: String = "",
+    val isCompleted: Boolean = false,
+    val order: Int = 0
 )

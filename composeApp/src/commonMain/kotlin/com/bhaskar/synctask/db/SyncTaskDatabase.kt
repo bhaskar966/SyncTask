@@ -8,10 +8,20 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 
-@Database(entities = [ReminderEntity::class, SyncQueueEntity::class], version = 1)
+@Database(
+    entities = [
+        ReminderEntity::class,
+        SyncQueueEntity::class,
+        ReminderGroupEntity::class,
+        TagEntity::class
+               ],
+    version = 1
+)
 @ConstructedBy(SyncTaskDatabaseConstructor::class)
 abstract class SyncTaskDatabase : RoomDatabase() {
     abstract fun reminderDao(): ReminderDao
+    abstract fun groupDao(): GroupDao
+    abstract fun tagDao(): TagDao
 }
 
 @Suppress("NO_ACTUAL_FOR_EXPECT")
