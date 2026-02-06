@@ -4,22 +4,20 @@ import com.bhaskar.synctask.data.auth.AuthManager
 import com.bhaskar.synctask.data.fcm.FCMInitializer
 import com.bhaskar.synctask.data.services.RecurrenceService
 import com.bhaskar.synctask.data.repository.ReminderRepositoryImpl
-import com.bhaskar.synctask.data.platform.PlatformFirestoreDataSource
-import com.bhaskar.synctask.data.platform.PlatformNotificationScheduler
 import com.bhaskar.synctask.data.repository.GroupRepositoryImpl
 import com.bhaskar.synctask.data.repository.TagRepositoryImpl
 import com.bhaskar.synctask.data.sync.SyncService
 import com.bhaskar.synctask.db.SyncTaskDatabase
 import com.bhaskar.synctask.domain.repository.ReminderRepository
+import com.bhaskar.synctask.domain.repository.SubscriptionRepository
+import com.bhaskar.synctask.data.repository.SubscriptionRepositoryImpl
 import com.bhaskar.synctask.presentation.list.ReminderListViewModel
 import com.bhaskar.synctask.presentation.create.CreateReminderViewModel
 import com.bhaskar.synctask.presentation.detail.ReminderDetailViewModel
 import com.bhaskar.synctask.presentation.settings.SettingsViewModel
 import org.koin.core.module.Module
 import org.koin.dsl.module
-import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf
-import org.koin.dsl.bind
 import org.koin.core.KoinApplication
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineScope
@@ -28,8 +26,6 @@ import com.bhaskar.synctask.db.getSyncDatabase
 import com.bhaskar.synctask.domain.NotificationCalculator
 import com.bhaskar.synctask.domain.repository.GroupRepository
 import com.bhaskar.synctask.domain.repository.TagRepository
-import com.bhaskar.synctask.platform.FirestoreDataSource
-import com.bhaskar.synctask.platform.NotificationScheduler
 import com.bhaskar.synctask.presentation.auth.AuthViewModel
 import com.bhaskar.synctask.presentation.groups.GroupsViewModel
 
@@ -55,6 +51,7 @@ val dataModule = module {
 
     // Services
     single { RecurrenceService() }
+    single { com.bhaskar.synctask.data.services.RevenueCatService() } // ✅ New Service
     single { NotificationCalculator(get()) }
 
     // Repositories
@@ -104,6 +101,9 @@ val dataModule = module {
             scope = get()
         )
     }
+    
+    // Subscription Repository
+    single<SubscriptionRepository> { SubscriptionRepositoryImpl(get()) } // ✅ Inject Service
 }
 
 val domainModule = module {

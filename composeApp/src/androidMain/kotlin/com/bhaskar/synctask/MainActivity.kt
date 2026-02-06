@@ -2,10 +2,12 @@ package com.bhaskar.synctask
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
@@ -14,7 +16,18 @@ import androidx.core.content.ContextCompat
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+        // Configure edge-to-edge with transparent system bars
+        // This makes the paywall and other screens extend behind system bars
+        enableEdgeToEdge(
+//            statusBarStyle = SystemBarStyle.auto(
+//                lightScrim = Color.TRANSPARENT,
+//                darkScrim = Color.TRANSPARENT
+//            ),
+//            navigationBarStyle = SystemBarStyle.auto(
+//                lightScrim = Color.TRANSPARENT,
+//                darkScrim = Color.TRANSPARENT
+//            )
+        )
         super.onCreate(savedInstanceState)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

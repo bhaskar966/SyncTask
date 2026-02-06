@@ -21,6 +21,9 @@ sealed class MainRoutes {
 
     @Serializable
     data object SettingsScreen: MainRoutes()
+    
+    @Serializable
+    data object PaywallScreen: MainRoutes()
 }
 
 // Bottom navigation routes (tabs)

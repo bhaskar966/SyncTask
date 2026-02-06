@@ -13,7 +13,13 @@ struct iOSApp: App {
     init() {
         FirebaseApp.configure()
         print("✅ Firebase initialized successfully")
+        
+        // Initialize Koin first
         KoinHelperKt.doInitKoin()
+        
+        // Initialize RevenueCat SDK via Kotlin KMP
+        configureRevenueCat()
+        
         let _ = GoogleSignInBridge.shared
         registerNotificationCategories()
 
@@ -38,6 +44,23 @@ struct iOSApp: App {
             }
         }
     }
+    
+    private func configureRevenueCat() {
+        // Get API key from Info.plist (injected from Secrets.xcconfig)
+        guard let apiKey = Bundle.main.object(forInfoDictionaryKey: "REVENUECAT_API_KEY") as? String,
+              !apiKey.isEmpty,
+              !apiKey.hasPrefix("$(") else {  // Check for unresolved build variable
+            print("⚠️ RevenueCat API key not configured in Info.plist")
+            return
+        }
+        
+        // Get Firebase UID if user is already logged in
+        let firebaseUserId = KoinHelperKt.getFirebaseUserId()
+        
+        // Call Kotlin KMP function to configure RevenueCat with optional user ID
+        KoinHelperKt.configureRevenueCat(apiKey: apiKey, userId: firebaseUserId)
+    }
+
 
     var body: some Scene {
         WindowGroup {

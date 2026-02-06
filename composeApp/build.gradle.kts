@@ -25,6 +25,7 @@ val localProperties = Properties().apply {
 }
 
 val webClientId = localProperties.getProperty("GOOGLE_WEB_CLIENT_ID") ?: ""
+val revenuecatApiKey = localProperties.getProperty("REVENUECAT_API_KEY") ?: ""
 
 kotlin {
     androidTarget {
@@ -119,6 +120,12 @@ kotlin {
             implementation(libs.gitlive.firebase.common)
             implementation(libs.gitlive.firebase.auth)
             implementation(libs.gitlive.firebase.firestore)
+
+            // RevenueCat
+            implementation(libs.purchases.core)
+            implementation(libs.purchases.either)
+            implementation(libs.purchases.result)
+            implementation(libs.purchases.ui)
         }
 
         commonTest.dependencies {
@@ -131,6 +138,13 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.ktor.client.cio)
         }
+
+        named { it.lowercase().startsWith("ios") }.configureEach {
+            languageSettings {
+                optIn("kotlinx.cinterop.ExperimentalForeignApi")
+            }
+        }
+
     }
 }
 
@@ -150,6 +164,7 @@ android {
         versionName = "1.0"
 
         buildConfigField("String", "WEB_CLIENT_ID", "\"$webClientId\"")
+        buildConfigField("String", "REVENUECAT_API_KEY", "\"$revenuecatApiKey\"")
     }
 
     buildFeatures {

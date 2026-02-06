@@ -77,5 +77,9 @@ sealed class CreateReminderEvent {
     data object OnToggleRecurrencePicker : CreateReminderEvent()
     data object OnToggleRecurrenceEndDatePicker : CreateReminderEvent()
 
+    // Premium Dialog
+    data object OnDismissPremiumDialog : CreateReminderEvent()
+    data object OnNavigateToSubscription : CreateReminderEvent()
+
     data object OnSave : CreateReminderEvent()
 }

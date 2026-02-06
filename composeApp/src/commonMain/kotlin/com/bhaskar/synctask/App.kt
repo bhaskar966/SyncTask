@@ -15,6 +15,7 @@ import com.bhaskar.synctask.data.auth.AuthState
 import com.bhaskar.synctask.platform.NotificationScheduler
 import com.bhaskar.synctask.presentation.auth.LoginScreen
 import com.bhaskar.synctask.presentation.list.ReminderListScreen
+import com.bhaskar.synctask.presentation.paywall.PaywallWrapper
 import com.bhaskar.synctask.presentation.theme.SyncTaskTheme
 import com.bhaskar.synctask.presentation.create.CreateReminderScreen
 import com.bhaskar.synctask.presentation.create.CreateReminderViewModel
@@ -114,6 +115,9 @@ private fun MainAppContent(notificationScheduler: NotificationScheduler) {
                 onNavigateToCustomRecurrence = {
                     navController.navigate(MainRoutes.CustomRecurrenceScreen)
                 },
+                onNavigateToPaywall = {
+                    navController.navigate(MainRoutes.PaywallScreen)
+                },
                 navController = navController
             )
         }
@@ -144,6 +148,17 @@ private fun MainAppContent(notificationScheduler: NotificationScheduler) {
         composable<MainRoutes.SettingsScreen> {
             SettingsScreen(
                 onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToPaywall = {
+                    navController.navigate(MainRoutes.PaywallScreen)
+                }
+            )
+        }
+        // Paywall Screen (RevenueCat UI)
+        composable<MainRoutes.PaywallScreen> {
+            PaywallWrapper(
+                onDismiss = {
                     navController.popBackStack()
                 }
             )

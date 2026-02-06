@@ -1,14 +1,17 @@
 package com.bhaskar.synctask.domain.subscription
 
 object SubscriptionConfig {
-    // Testing flag - set to true during development, false in production
-    var isTestingPremiumFeatures: Boolean = true
-
-    // Will be set by RevenueCat later
-    var isPremiumSubscribed: Boolean = false
-
-    // Helper
-    fun hasPremiumAccess(): Boolean = isTestingPremiumFeatures || isPremiumSubscribed
+    // RevenueCat entitlement ID - matches what you configured in RevenueCat dashboard
+    const val PREMIUM_ENTITLEMENT_ID = "premium_test"
+    
+    // Testing flag - strictly for dev use, kept as constant reference if needed, 
+    // but logic should prefer passed-in state.
+    const val IS_TESTING_PREMIUM_FEATURES = false
+    
+    // Helper to check access given a state
+    fun hasPremiumAccess(isPremiumSubscribed: Boolean): Boolean {
+        return IS_TESTING_PREMIUM_FEATURES || isPremiumSubscribed
+    }
 
     // Limits
     object Limits {
@@ -35,59 +38,59 @@ object SubscriptionConfig {
         const val TAGS = "You've reached 10 tags limit. Premium users get 100 tags!"
     }
 
-    // Check functions
-    fun canAddReminder(currentCount: Int): Boolean {
-        val limit = if (hasPremiumAccess()) Limits.PREMIUM_MAX_ACTIVE_REMINDERS
+    // Check functions - now PURE (require state injection)
+    fun canAddReminder(currentCount: Int, isPremium: Boolean): Boolean {
+        val limit = if (hasPremiumAccess(isPremium)) Limits.PREMIUM_MAX_ACTIVE_REMINDERS
         else Limits.FREE_MAX_ACTIVE_REMINDERS
         return currentCount < limit
     }
 
-    fun canAddGroup(currentCount: Int): Boolean {
-        val limit = if (hasPremiumAccess()) Limits.PREMIUM_MAX_GROUPS
+    fun canAddGroup(currentCount: Int, isPremium: Boolean): Boolean {
+        val limit = if (hasPremiumAccess(isPremium)) Limits.PREMIUM_MAX_GROUPS
         else Limits.FREE_MAX_GROUPS
         return currentCount < limit
     }
 
-    fun canAddSubtask(currentCount: Int): Boolean {
-        val limit = if (hasPremiumAccess()) Limits.PREMIUM_MAX_SUBTASKS_PER_REMINDER
+    fun canAddSubtask(currentCount: Int, isPremium: Boolean): Boolean {
+        val limit = if (hasPremiumAccess(isPremium)) Limits.PREMIUM_MAX_SUBTASKS_PER_REMINDER
         else Limits.FREE_MAX_SUBTASKS_PER_REMINDER
         return currentCount < limit
     }
 
-    fun canPinReminder(currentPinnedCount: Int): Boolean {
-        val limit = if (hasPremiumAccess()) Limits.PREMIUM_MAX_PINNED_REMINDERS
+    fun canPinReminder(currentPinnedCount: Int, isPremium: Boolean): Boolean {
+        val limit = if (hasPremiumAccess(isPremium)) Limits.PREMIUM_MAX_PINNED_REMINDERS
         else Limits.FREE_MAX_PINNED_REMINDERS
         return currentPinnedCount < limit
     }
 
-    fun canAddTag(currentCount: Int): Boolean {
-        val limit = if (hasPremiumAccess()) Limits.PREMIUM_MAX_TAGS
+    fun canAddTag(currentCount: Int, isPremium: Boolean): Boolean {
+        val limit = if (hasPremiumAccess(isPremium)) Limits.PREMIUM_MAX_TAGS
         else Limits.FREE_MAX_TAGS
         return currentCount < limit
     }
 
-    fun getMaxReminders(): Int {
-        return if (hasPremiumAccess()) Limits.PREMIUM_MAX_ACTIVE_REMINDERS
+    fun getMaxReminders(isPremium: Boolean): Int {
+        return if (hasPremiumAccess(isPremium)) Limits.PREMIUM_MAX_ACTIVE_REMINDERS
         else Limits.FREE_MAX_ACTIVE_REMINDERS
     }
 
-    fun getMaxGroups(): Int {
-        return if (hasPremiumAccess()) Limits.PREMIUM_MAX_GROUPS
+    fun getMaxGroups(isPremium: Boolean): Int {
+        return if (hasPremiumAccess(isPremium)) Limits.PREMIUM_MAX_GROUPS
         else Limits.FREE_MAX_GROUPS
     }
 
-    fun getMaxSubtasksPerReminder(): Int {
-        return if (hasPremiumAccess()) Limits.PREMIUM_MAX_SUBTASKS_PER_REMINDER
+    fun getMaxSubtasksPerReminder(isPremium: Boolean): Int {
+        return if (hasPremiumAccess(isPremium)) Limits.PREMIUM_MAX_SUBTASKS_PER_REMINDER
         else Limits.FREE_MAX_SUBTASKS_PER_REMINDER
     }
 
-    fun getMaxPinnedReminders(): Int {
-        return if (hasPremiumAccess()) Limits.PREMIUM_MAX_PINNED_REMINDERS
+    fun getMaxPinnedReminders(isPremium: Boolean): Int {
+        return if (hasPremiumAccess(isPremium)) Limits.PREMIUM_MAX_PINNED_REMINDERS
         else Limits.FREE_MAX_PINNED_REMINDERS
     }
 
-    fun getMaxTags(): Int {
-        return if (hasPremiumAccess()) Limits.PREMIUM_MAX_TAGS
+    fun getMaxTags(isPremium: Boolean): Int {
+        return if (hasPremiumAccess(isPremium)) Limits.PREMIUM_MAX_TAGS
         else Limits.FREE_MAX_TAGS
     }
 }

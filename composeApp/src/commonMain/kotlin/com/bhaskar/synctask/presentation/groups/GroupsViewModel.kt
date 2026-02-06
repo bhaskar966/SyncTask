@@ -8,6 +8,7 @@ import com.bhaskar.synctask.domain.model.Reminder
 import com.bhaskar.synctask.domain.model.ReminderGroup
 import com.bhaskar.synctask.domain.repository.GroupRepository
 import com.bhaskar.synctask.domain.repository.ReminderRepository
+import com.bhaskar.synctask.domain.repository.SubscriptionRepository
 import com.bhaskar.synctask.domain.subscription.SubscriptionConfig
 import com.bhaskar.synctask.presentation.groups.components.GroupsEvent
 import com.bhaskar.synctask.presentation.groups.components.GroupsState
@@ -25,7 +26,8 @@ import kotlin.uuid.Uuid
 
 class GroupsViewModel(
     private val groupRepository: GroupRepository,
-    private val reminderRepository: ReminderRepository,  // ✅ NEW: Add this
+    private val reminderRepository: ReminderRepository,
+    private val subscriptionRepository: SubscriptionRepository, // ✅ Inject this
     private val authManager: AuthManager
 ) : ViewModel() {
 
@@ -59,6 +61,9 @@ class GroupsViewModel(
                 initialValue = emptyList()
             )
     }
+    
+    // ✅ Expose premium state
+    val isPremium: StateFlow<Boolean> = subscriptionRepository.isPremiumSubscribed
 
     // ✅ NEW: Load ungrouped reminders
     val ungroupedReminders: StateFlow<List<Reminder>> = reminderRepository.getUngroupedReminders(userId)
@@ -74,7 +79,10 @@ class GroupsViewModel(
                 // ✅ Check premium limit before showing dialog
                 viewModelScope.launch {
                     val currentCount = groupRepository.getGroupCount(userId)
-                    if (SubscriptionConfig.canAddGroup(currentCount)) {
+                    // ✅ Observe premium state directly from repo
+                    val isPremium = subscriptionRepository.isPremiumSubscribed.value
+                    
+                    if (SubscriptionConfig.canAddGroup(currentCount, isPremium)) {
                         _state.update {
                             it.copy(
                                 isDialogVisible = true,

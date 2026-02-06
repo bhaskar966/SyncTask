@@ -63,8 +63,7 @@ fun BottomNavHost(
                         mainNavController.navigate(MainRoutes.ReminderDetailScreen(reminderId))
                     },
                     onNavigateToSubscription = {
-                        // TODO: Navigate to subscription screen when you create it
-                        // mainNavController.navigate(MainRoutes.SubscriptionScreen)
+                        mainNavController.navigate(MainRoutes.PaywallScreen)
                     }
                 )
             }

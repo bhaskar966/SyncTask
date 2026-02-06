@@ -45,7 +45,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,11 +62,19 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.bhaskar.synctask.presentation.theme.Indigo500
 import dev.icerock.moko.permissions.compose.BindEffect
 import dev.icerock.moko.permissions.compose.rememberPermissionsControllerFactory
+import com.bhaskar.synctask.domain.subscription.SubscriptionConfig
+import com.bhaskar.synctask.domain.repository.SubscriptionRepository
+import com.bhaskar.synctask.domain.repository.ActiveSubscriptionInfo
+import com.bhaskar.synctask.platform.openUrl
+import com.bhaskar.synctask.platform.showToast
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToPaywall: () -> Unit = {}
 ) {
     // Create permission controller
     val factory = rememberPermissionsControllerFactory()
@@ -74,6 +85,14 @@ fun SettingsScreen(
 
     val state by viewModel.state.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
+    
+    // Subscription state
+    val subscriptionRepository: SubscriptionRepository = koinInject()
+    val isPremium by subscriptionRepository.isPremiumSubscribed.collectAsState()
+    val managementUrl by subscriptionRepository.managementUrl.collectAsState()
+    val activeSubscriptionInfo by subscriptionRepository.activeSubscriptionInfo.collectAsState()
+    val scope = rememberCoroutineScope()
+    var isRestoring by remember { mutableStateOf(false) }
 
     // Bind permission controller to lifecycle
     BindEffect(permissionsController)
@@ -112,12 +131,42 @@ fun SettingsScreen(
                 .padding(16.dp)
         ) {
             // Profile
-            ProfileSection(name = state.userName, email = state.userEmail)
+            ProfileSection(name = state.userName, email = state.userEmail, isPremium = isPremium)
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Subscription
-            SubscriptionCard()
+            // Subscription Section
+            SubscriptionSection(
+                isPremium = isPremium,
+                activeSubscriptionInfo = activeSubscriptionInfo,
+                managementUrl = managementUrl,
+                isRestoring = isRestoring,
+                onUpgradeClick = onNavigateToPaywall,
+                onManageClick = { url ->
+                    openUrl(url)
+                },
+                onRestoreClick = {
+                    scope.launch {
+                        isRestoring = true
+                        val result = subscriptionRepository.restorePurchases()
+                        isRestoring = false
+                        
+                        result.fold(
+                            onSuccess = { customerInfo ->
+                                val hasPremium = customerInfo.entitlements[SubscriptionConfig.PREMIUM_ENTITLEMENT_ID]?.isActive == true
+                                if (hasPremium) {
+                                    showToast("✅ Purchase restored successfully!")
+                                } else {
+                                    showToast("No previous purchases found")
+                                }
+                            },
+                            onFailure = { error ->
+                                showToast("❌ Restore failed: ${error.message ?: "Unknown error"}")
+                            }
+                        )
+                    }
+                }
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -174,7 +223,7 @@ fun SettingsScreen(
 
 
 @Composable
-fun ProfileSection(name: String, email: String) {
+fun ProfileSection(name: String, email: String, isPremium: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -197,10 +246,17 @@ fun ProfileSection(name: String, email: String) {
             Spacer(modifier = Modifier.height(4.dp))
             Box(
                 modifier = Modifier
-                    .background(Color.Gray.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                    .background(
+                        if (isPremium) Indigo500.copy(alpha = 0.2f) else Color.Gray.copy(alpha = 0.1f),
+                        RoundedCornerShape(4.dp)
+                    )
                     .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
-                Text("Free Account", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    if (isPremium) "Premium" else "Free Account",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isPremium) Indigo500 else MaterialTheme.colorScheme.onSurface
+                )
             }
         }
         Text("Edit", color = Indigo500, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
@@ -208,7 +264,7 @@ fun ProfileSection(name: String, email: String) {
 }
 
 @Composable
-fun SubscriptionCard() {
+fun SubscriptionCard(onClick: () -> Unit = {}) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -217,7 +273,7 @@ fun SubscriptionCard() {
     ) {
         Row(
             modifier = Modifier
-                .clickable { }
+                .clickable(onClick = onClick)
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -236,6 +292,129 @@ fun SubscriptionCard() {
                 Text("Unlock unlimited reminders", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
             Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.Gray)
+        }
+    }
+}
+
+@Composable
+fun SubscriptionSection(
+    isPremium: Boolean,
+    activeSubscriptionInfo: ActiveSubscriptionInfo?,
+    managementUrl: String?,
+    isRestoring: Boolean,
+    onUpgradeClick: () -> Unit,
+    onManageClick: (String) -> Unit,
+    onRestoreClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isPremium) Indigo500 else Color.Gray.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.Star, 
+                        contentDescription = null, 
+                        tint = if (isPremium) Color.White else Color.Gray
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        if (isPremium) "Premium Active" else "Free Plan",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (isPremium && activeSubscriptionInfo != null) {
+                        val renewText = if (activeSubscriptionInfo.willRenew) "Renews" else "Expires"
+                        Text(
+                            "$renewText ${activeSubscriptionInfo.expirationDateFormatted ?: "soon"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (activeSubscriptionInfo.willRenew) Color.Gray else Color(0xFFEF4444)
+                        )
+                    } else {
+                        Text(
+                            "Upgrade for unlimited features",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            if (isPremium && managementUrl != null) {
+                // Premium user - show manage subscription button
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable { onManageClick(managementUrl) }
+                        .padding(12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "Manage Subscription",
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                // Free user - show upgrade and restore buttons
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Upgrade button
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Indigo500)
+                            .clickable { onUpgradeClick() }
+                            .padding(12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Upgrade to Premium",
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Restore purchases button
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable(enabled = !isRestoring) { onRestoreClick() }
+                        .padding(12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        if (isRestoring) "Restoring..." else "Restore Purchases",
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }

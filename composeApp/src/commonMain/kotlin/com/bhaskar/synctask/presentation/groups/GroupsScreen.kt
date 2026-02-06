@@ -59,6 +59,7 @@ fun GroupsScreen(
     val state by viewModel.state.collectAsState()
     val groups by viewModel.groups.collectAsState()
     val ungroupedReminders by viewModel.ungroupedReminders.collectAsState()
+    val isPremium by viewModel.isPremium.collectAsState()
 
     // Show create/edit dialog
     if (state.isDialogVisible) {
@@ -98,7 +99,7 @@ fun GroupsScreen(
 
                 // Group count indicator
                 Text(
-                    text = "${groups.size}/${SubscriptionConfig.getMaxGroups()}",
+                    text = "${groups.size}/${SubscriptionConfig.getMaxGroups(isPremium)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

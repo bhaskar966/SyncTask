@@ -12,6 +12,8 @@ import com.bhaskar.synctask.domain.model.*
 import com.bhaskar.synctask.domain.repository.ReminderRepository
 import com.bhaskar.synctask.domain.repository.GroupRepository
 import com.bhaskar.synctask.domain.repository.TagRepository
+import com.bhaskar.synctask.domain.repository.SubscriptionRepository
+import com.bhaskar.synctask.domain.subscription.SubscriptionConfig
 import com.bhaskar.synctask.presentation.create.components.*
 import com.bhaskar.synctask.presentation.list.ui_components.formatRecurrence
 import com.bhaskar.synctask.presentation.utils.atStartOfDay
@@ -32,6 +34,7 @@ class CreateReminderViewModel(
     private val reminderRepository: ReminderRepository,
     private val groupRepository: GroupRepository,
     private val tagRepository: TagRepository,
+    private val subscriptionRepository: SubscriptionRepository, // ✅ Inject
     private val authManager: AuthManager
 ) : ViewModel() {
 
@@ -90,7 +93,22 @@ class CreateReminderViewModel(
             }
 
             is CreateReminderEvent.OnPinToggled -> {
-                _state.update { it.copy(isPinned = event.pinned) }
+                if (event.pinned) {
+                    // Check limit before pinning
+                    viewModelScope.launch {
+                        val userId = authManager.currentUserId ?: "anonymous"
+                        val currentPinnedCount = reminderRepository.getPinnedReminderCount(userId)
+                        val isPremium = subscriptionRepository.isPremiumSubscribed.value // ✅ Get state
+                        
+                        if (SubscriptionConfig.canPinReminder(currentPinnedCount, isPremium)) {
+                            _state.update { it.copy(isPinned = true) }
+                        } else {
+                            showPremiumDialog(SubscriptionConfig.UpgradeMessages.PINNED)
+                        }
+                    }
+                } else {
+                    _state.update { it.copy(isPinned = false) }
+                }
             }
 
             // ✅ Group autocomplete
@@ -167,6 +185,8 @@ class CreateReminderViewModel(
             }
 
             is CreateReminderEvent.OnCreateTag -> {
+                if (!checkTagLimit()) return
+
                 val tagName = event.name.trim()
                 if (tagName.isBlank()) return
 
@@ -207,6 +227,8 @@ class CreateReminderViewModel(
             }
 
             CreateReminderEvent.OnAddSubtask -> {
+                if (!checkSubtaskLimit()) return
+
                 val input = _state.value.subtaskInput.trim()
                 if (input.isBlank()) return
 
@@ -483,11 +505,75 @@ class CreateReminderViewModel(
             CreateReminderEvent.OnToggleColorPicker -> {
                 _state.update { it.copy(showColorPicker = !it.showColorPicker) }
             }
+            
+            // Premium Dialog Events
+            CreateReminderEvent.OnDismissPremiumDialog -> {
+                _state.update { it.copy(showPremiumDialog = false, premiumDialogMessage = "") }
+            }
+            
+            CreateReminderEvent.OnNavigateToSubscription -> {
+                _state.update { it.copy(showPremiumDialog = false, premiumDialogMessage = "") }
+                // Navigation handled in composable via SharedFlow or callback
+            }
         }
+    }
+    
+    // Helper function to show premium dialog
+    private fun showPremiumDialog(message: String) {
+        _state.update { it.copy(showPremiumDialog = true, premiumDialogMessage = message) }
+    }
+    
+    // Premium check functions
+    fun canAddTag(): Boolean {
+        val currentCount = tags.value.size
+        val isPremium = subscriptionRepository.isPremiumSubscribed.value
+        return SubscriptionConfig.canAddTag(currentCount, isPremium)
+    }
+    
+    fun canAddSubtask(): Boolean {
+        val currentCount = _state.value.subtasks.size
+        val isPremium = subscriptionRepository.isPremiumSubscribed.value
+        return SubscriptionConfig.canAddSubtask(currentCount, isPremium)
+    }
+    
+    fun canPinReminder(): Boolean {
+        val isPremium = subscriptionRepository.isPremiumSubscribed.value
+        return SubscriptionConfig.hasPremiumAccess(isPremium) || !_state.value.isPinned
+    }
+    
+    fun canUseCustomRecurrence(): Boolean {
+        val isPremium = subscriptionRepository.isPremiumSubscribed.value
+        return SubscriptionConfig.hasPremiumAccess(isPremium)
+    }
+    
+    // Called before adding a tag
+    fun checkTagLimit(): Boolean {
+        if (!canAddTag()) {
+            showPremiumDialog(SubscriptionConfig.UpgradeMessages.TAGS)
+            return false
+        }
+        return true
+    }
+    
+    // Called before adding a subtask
+    fun checkSubtaskLimit(): Boolean {
+        if (!canAddSubtask()) {
+            showPremiumDialog(SubscriptionConfig.UpgradeMessages.SUBTASKS)
+            return false
+        }
+        return true
+    }
+    
+    // Called before enabling custom recurrence
+    fun checkCustomRecurrenceAccess(): Boolean {
+        if (!canUseCustomRecurrence()) {
+            showPremiumDialog("Custom recurrence is a premium feature. Upgrade to create personalized repeat schedules!")
+            return false
+        }
+        return true
     }
 
     private fun saveReminder() {
-
         viewModelScope.launch(Dispatchers.IO) {
             val error = validateState(state.value)
             if (error != null) {
@@ -497,18 +583,27 @@ class CreateReminderViewModel(
                 return@launch
             }
 
-            println("💾 OnSave - State before validation:")
-            println("💾 - title: ${_state.value.title}")
-            println("💾 - selectedTags: ${_state.value.selectedTags}")
-            println("💾 - selectedGroupId: ${_state.value.selectedGroupId}")
-            println("💾 - subtasks: ${_state.value.subtasks}")
-
             if (_state.value.title.isBlank()) {
                 _state.update { it.copy(validationError = "Title is required") }
                 return@launch
             }
 
             val currentState = state.value
+
+            // Check limits for NEW reminders
+            if (editingReminderId == null) {
+                val userId = authManager.currentUserId ?: "anonymous"
+                val activeCount = reminderRepository.getActiveReminderCount(userId)
+                val isPremium = subscriptionRepository.isPremiumSubscribed.value
+
+                if (!SubscriptionConfig.canAddReminder(activeCount, isPremium)) {
+                    withContext(Dispatchers.Main) {
+                        showPremiumDialog(SubscriptionConfig.UpgradeMessages.REMINDERS)
+                    }
+                    return@launch
+                }
+            }
+
             withContext(Dispatchers.Main) {
                 _state.update { it.copy(isSaving = true) }
             }

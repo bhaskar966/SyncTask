@@ -40,6 +40,7 @@ import com.bhaskar.synctask.presentation.create.ui_components.ScrollableRowOfChi
 import com.bhaskar.synctask.presentation.create.ui_components.SectionHeader
 import com.bhaskar.synctask.presentation.create.ui_components.TagsAutocompleteField
 import com.bhaskar.synctask.presentation.create.ui_components.TimePickerModal
+import com.bhaskar.synctask.presentation.components.PremiumLimitDialog
 import com.bhaskar.synctask.presentation.theme.Indigo500
 import com.bhaskar.synctask.presentation.utils.parseHexColor
 import kotlinx.datetime.*
@@ -55,6 +56,7 @@ fun CreateReminderScreen(
     tags: List<Tag>,
     onNavigateBack: () -> Unit,
     onNavigateToCustomRecurrence: () -> Unit,
+    onNavigateToPaywall: () -> Unit = {},
     navController: NavController,
 ) {
     var showRecurrenceModal by remember { mutableStateOf(false) }
@@ -175,6 +177,18 @@ fun CreateReminderScreen(
                 onEvent(CreateReminderEvent.OnColorSelected(it))
             },
             onDismiss = { onEvent(CreateReminderEvent.OnToggleColorPicker) }
+        )
+    }
+    
+    // Premium Limit Dialog
+    if (state.showPremiumDialog) {
+        PremiumLimitDialog(
+            message = state.premiumDialogMessage,
+            onDismiss = { onEvent(CreateReminderEvent.OnDismissPremiumDialog) },
+            onUpgrade = {
+                onEvent(CreateReminderEvent.OnNavigateToSubscription)
+                onNavigateToPaywall()
+            }
         )
     }
 

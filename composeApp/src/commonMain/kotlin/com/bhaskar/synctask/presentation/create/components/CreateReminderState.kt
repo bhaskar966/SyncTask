@@ -82,6 +82,11 @@ data class CreateReminderState(
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
     val validationError: String? = null,
+    
+    // Premium Dialog State
+    val showPremiumDialog: Boolean = false,
+    val premiumDialogMessage: String = "",
+    val navigateToSubscription: Boolean = false,
 ) {
     fun getDueTime(): Long {
         return if (hasSpecificTime) {

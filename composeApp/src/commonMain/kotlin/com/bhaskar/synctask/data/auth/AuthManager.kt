@@ -1,17 +1,17 @@
 package com.bhaskar.synctask.data.auth
 
+import com.bhaskar.synctask.domain.repository.SubscriptionRepository
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.FirebaseAuth
 import dev.gitlive.firebase.auth.GoogleAuthProvider
 import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import org.koin.mp.KoinPlatform
 
 class AuthManager(
     private val googleAuthenticator: GoogleAuthenticator
@@ -26,6 +26,16 @@ class AuthManager(
 
     val isAuthenticated: Boolean
         get() = auth.currentUser != null
+
+    // Lazy injection to break circular dependency - SubscriptionRepository is resolved only when needed
+    private val subscriptionRepository: SubscriptionRepository? by lazy {
+        try {
+            KoinPlatform.getKoin().getOrNull()
+        } catch (e: Exception) {
+            println("⚠️ SubscriptionRepository not available: ${e.message}")
+            null
+        }
+    }
 
     init {
         // Listen to Firebase auth state changes
@@ -59,6 +69,15 @@ class AuthManager(
                     val result = auth.signInWithCredential(credential)
                     val userId = result.user?.uid ?: throw Exception("No user ID")
                     println("✅ Firebase: Google Sign-In successful - $userId")
+                    
+                    // Sync RevenueCat with Firebase user ID for cross-device subscription sync
+                    try {
+                        subscriptionRepository?.loginUser(userId)
+                    } catch (e: Exception) {
+                        println("⚠️ RevenueCat login sync failed: ${e.message}")
+                        // Don't fail the sign-in if RevenueCat sync fails
+                    }
+                    
                     Result.success(userId)
                 },
                 onFailure = { error ->
@@ -79,6 +98,14 @@ class AuthManager(
             val result = auth.signInAnonymously()
             val userId = result.user?.uid ?: throw Exception("No user ID")
             println("✅ Firebase: Anonymous sign in - $userId")
+            
+            // Sync RevenueCat with anonymous Firebase user ID
+            try {
+                subscriptionRepository?.loginUser(userId)
+            } catch (e: Exception) {
+                println("⚠️ RevenueCat login sync failed: ${e.message}")
+            }
+            
             Result.success(userId)
         } catch (e: Exception) {
             println("❌ Anonymous sign in failed: ${e.message}")
@@ -88,6 +115,13 @@ class AuthManager(
 
     suspend fun signOut() {
         try {
+            // Logout from RevenueCat first to reset subscription state
+            try {
+                subscriptionRepository?.logoutUser()
+            } catch (e: Exception) {
+                println("⚠️ RevenueCat logout sync failed: ${e.message}")
+            }
+            
             auth.signOut()
             println("✅ Signed out")
         } catch (e: Exception) {

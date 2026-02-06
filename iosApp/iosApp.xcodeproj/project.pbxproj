@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		131616F52F30979500C543DA /* FirebaseInAppMessaging-Beta in Frameworks */ = {isa = PBXBuildFile; productRef = 131616F42F30979500C543DA /* FirebaseInAppMessaging-Beta */; };
 		131616F72F30979500C543DA /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 131616F62F30979500C543DA /* FirebaseMessaging */; };
+		138B881D2F3639BC003FD5DE /* PurchasesHybridCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 138B881C2F3639BC003FD5DE /* PurchasesHybridCommon */; };
+		138B881F2F3639BC003FD5DE /* PurchasesHybridCommonUI in Frameworks */ = {isa = PBXBuildFile; productRef = 138B881E2F3639BC003FD5DE /* PurchasesHybridCommonUI */; };
 		13CB10462F2FCB7B00DDDAE3 /* FirebaseAppDistribution-Beta in Frameworks */ = {isa = PBXBuildFile; productRef = 13CB10452F2FCB7B00DDDAE3 /* FirebaseAppDistribution-Beta */; };
 		13CB10482F2FCB7B00DDDAE3 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 13CB10472F2FCB7B00DDDAE3 /* FirebaseAuth */; };
 		13CB104A2F2FCB7B00DDDAE3 /* FirebaseAuthCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = 13CB10492F2FCB7B00DDDAE3 /* FirebaseAuthCombine-Community */; };
@@ -58,11 +60,13 @@
 				13CB104A2F2FCB7B00DDDAE3 /* FirebaseAuthCombine-Community in Frameworks */,
 				131616F72F30979500C543DA /* FirebaseMessaging in Frameworks */,
 				131616F52F30979500C543DA /* FirebaseInAppMessaging-Beta in Frameworks */,
+				138B881D2F3639BC003FD5DE /* PurchasesHybridCommon in Frameworks */,
 				13CB104C2F2FCB7B00DDDAE3 /* FirebaseCore in Frameworks */,
 				13CB10552F2FCBB000DDDAE3 /* GoogleSignInSwift in Frameworks */,
 				13CB10502F2FCB7B00DDDAE3 /* FirebaseFirestoreCombine-Community in Frameworks */,
 				13CB104E2F2FCB7B00DDDAE3 /* FirebaseFirestore in Frameworks */,
 				13CB10482F2FCB7B00DDDAE3 /* FirebaseAuth in Frameworks */,
+				138B881F2F3639BC003FD5DE /* PurchasesHybridCommonUI in Frameworks */,
 				13CB10532F2FCBB000DDDAE3 /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -118,6 +122,8 @@
 				13CB10542F2FCBB000DDDAE3 /* GoogleSignInSwift */,
 				131616F42F30979500C543DA /* FirebaseInAppMessaging-Beta */,
 				131616F62F30979500C543DA /* FirebaseMessaging */,
+				138B881C2F3639BC003FD5DE /* PurchasesHybridCommon */,
+				138B881E2F3639BC003FD5DE /* PurchasesHybridCommonUI */,
 			);
 			productName = iosApp;
 			productReference = B75DC5BE9B76CB81DF82CFC7 /* SyncTask.app */;
@@ -150,6 +156,7 @@
 			packageReferences = (
 				13CB10442F2FCB7B00DDDAE3 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				13CB10512F2FCBB000DDDAE3 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				138B881B2F3639BC003FD5DE /* XCRemoteSwiftPackageReference "purchases-hybrid-common" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 70E8AD49A957D2013AD05DB5 /* Products */;
@@ -409,6 +416,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		138B881B2F3639BC003FD5DE /* XCRemoteSwiftPackageReference "purchases-hybrid-common" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-hybrid-common";
+			requirement = {
+				kind = exactVersion;
+				version = 17.32.0;
+			};
+		};
 		13CB10442F2FCB7B00DDDAE3 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
@@ -437,6 +452,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 13CB10442F2FCB7B00DDDAE3 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseMessaging;
+		};
+		138B881C2F3639BC003FD5DE /* PurchasesHybridCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 138B881B2F3639BC003FD5DE /* XCRemoteSwiftPackageReference "purchases-hybrid-common" */;
+			productName = PurchasesHybridCommon;
+		};
+		138B881E2F3639BC003FD5DE /* PurchasesHybridCommonUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 138B881B2F3639BC003FD5DE /* XCRemoteSwiftPackageReference "purchases-hybrid-common" */;
+			productName = PurchasesHybridCommonUI;
 		};
 		13CB10452F2FCB7B00DDDAE3 /* FirebaseAppDistribution-Beta */ = {
 			isa = XCSwiftPackageProductDependency;
