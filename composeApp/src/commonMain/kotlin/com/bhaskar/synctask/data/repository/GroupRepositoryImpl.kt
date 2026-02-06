@@ -98,6 +98,16 @@ class GroupRepositoryImpl(
                         }
                     }
                 }
+
+                // Delete local groups that are not in cloud
+                val cloudIds = cloudGroups.map { it.id }.toSet()
+                val allLocalGroups = groupDao.getAllGroups(userId).firstOrNull() ?: emptyList()
+                allLocalGroups.forEach { localGroupEntity ->
+                    if (localGroupEntity.id !in cloudIds) {
+                        println("🗑️ Group ${localGroupEntity.id} not in cloud (and cloud update received), deleting locally")
+                        groupDao.deleteGroup(localGroupEntity.id)
+                    }
+                }
             }
         } catch (e: Exception) {
             println("❌ Groups Firestore sync error: ${e.message}")

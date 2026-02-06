@@ -88,6 +88,16 @@ class TagRepositoryImpl(
                         tagDao.insertTag(cloudTag.copy(isSynced = true).toEntity())
                     }
                 }
+
+                // Delete local tags that are not in cloud
+                val cloudIds = cloudTags.map { it.id }.toSet()
+                val allLocalTags = tagDao.getAllTags(userId).firstOrNull() ?: emptyList()
+                allLocalTags.forEach { localTagEntity ->
+                    if (localTagEntity.id !in cloudIds) {
+                        println("🗑️ Tag ${localTagEntity.id} not in cloud (and cloud update received), deleting locally")
+                        tagDao.deleteTag(localTagEntity.id)
+                    }
+                }
             }
         } catch (e: Exception) {
             println("❌ Tags Firestore sync error: ${e.message}")
