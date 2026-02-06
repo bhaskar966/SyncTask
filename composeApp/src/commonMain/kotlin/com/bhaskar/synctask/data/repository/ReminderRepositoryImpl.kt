@@ -459,4 +459,8 @@ class ReminderRepositoryImpl(
             println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         }
     }
+
+    override suspend fun deleteAllLocalReminders() = withContext(Dispatchers.IO) {
+        dao.deleteAllReminders()
+    }
 }

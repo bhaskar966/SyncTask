@@ -1,17 +1,9 @@
 package com.bhaskar.synctask.domain.repository
 
+import com.bhaskar.synctask.domain.model.ActiveSubscriptionInfo
 import com.bhaskar.synctask.domain.subscription.SubscriptionConfig
 import com.revenuecat.purchases.kmp.models.CustomerInfo
 import kotlinx.coroutines.flow.StateFlow
-
-/**
- * Data class holding active subscription details for UI display.
- */
-data class ActiveSubscriptionInfo(
-    val expirationDateFormatted: String?,
-    val willRenew: Boolean,
-    val productId: String?
-)
 
 /**
  * Repository for subscription management.

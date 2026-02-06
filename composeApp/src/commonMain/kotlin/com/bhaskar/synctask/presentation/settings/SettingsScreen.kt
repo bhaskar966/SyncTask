@@ -45,54 +45,44 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.bhaskar.synctask.domain.model.ActiveSubscriptionInfo
+import kotlinx.coroutines.launch
 import com.bhaskar.synctask.presentation.theme.Indigo500
 import dev.icerock.moko.permissions.compose.BindEffect
 import dev.icerock.moko.permissions.compose.rememberPermissionsControllerFactory
-import com.bhaskar.synctask.domain.subscription.SubscriptionConfig
-import com.bhaskar.synctask.domain.repository.SubscriptionRepository
-import com.bhaskar.synctask.domain.repository.ActiveSubscriptionInfo
+import dev.icerock.moko.permissions.notifications.REMOTE_NOTIFICATION
 import com.bhaskar.synctask.platform.openUrl
-import com.bhaskar.synctask.platform.showToast
-import kotlinx.coroutines.launch
-import org.koin.compose.koinInject
+import com.bhaskar.synctask.presentation.settings.components.SettingsEvent
+import com.bhaskar.synctask.presentation.settings.components.SettingsState
+import com.bhaskar.synctask.presentation.settings.components.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    state: SettingsState,
+    onEvent: (SettingsEvent) -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToPaywall: () -> Unit = {}
 ) {
-    // Create permission controller
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // CREATE permission controller locally
     val factory = rememberPermissionsControllerFactory()
     val permissionsController = remember(factory) { factory.createPermissionsController() }
-
-    // Create ViewModel with permission controller
-    val viewModel = remember { SettingsViewModel(permissionsController) }
-
-    val state by viewModel.state.collectAsState()
-    val lifecycleOwner = LocalLifecycleOwner.current
-    
-    // Subscription state
-    val subscriptionRepository: SubscriptionRepository = koinInject()
-    val isPremium by subscriptionRepository.isPremiumSubscribed.collectAsState()
-    val managementUrl by subscriptionRepository.managementUrl.collectAsState()
-    val activeSubscriptionInfo by subscriptionRepository.activeSubscriptionInfo.collectAsState()
-    val scope = rememberCoroutineScope()
-    var isRestoring by remember { mutableStateOf(false) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     // Bind permission controller to lifecycle
     BindEffect(permissionsController)
@@ -101,7 +91,15 @@ fun SettingsScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.onScreenResume()
+                // Check permissions status locally
+                scope.launch {
+                    try {
+                        val isGranted = permissionsController.isPermissionGranted(dev.icerock.moko.permissions.Permission.REMOTE_NOTIFICATION)
+                        onEvent(SettingsEvent.OnPushToggled(isGranted))
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -131,40 +129,28 @@ fun SettingsScreen(
                 .padding(16.dp)
         ) {
             // Profile
-            ProfileSection(name = state.userName, email = state.userEmail, isPremium = isPremium)
+            ProfileSection(
+                name = state.userName, 
+                email = state.userEmail, 
+                imageBitmap = state.userProfileImage,
+                isPremium = state.isPremium,
+                onLogoutClick = { onEvent(SettingsEvent.OnLogout) }
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             // Subscription Section
             SubscriptionSection(
-                isPremium = isPremium,
-                activeSubscriptionInfo = activeSubscriptionInfo,
-                managementUrl = managementUrl,
-                isRestoring = isRestoring,
+                isPremium = state.isPremium,
+                activeSubscriptionInfo = state.activeSubscriptionInfo,
+                managementUrl = state.managementUrl,
+                isRestoring = state.isRestoring,
                 onUpgradeClick = onNavigateToPaywall,
                 onManageClick = { url ->
                     openUrl(url)
                 },
                 onRestoreClick = {
-                    scope.launch {
-                        isRestoring = true
-                        val result = subscriptionRepository.restorePurchases()
-                        isRestoring = false
-                        
-                        result.fold(
-                            onSuccess = { customerInfo ->
-                                val hasPremium = customerInfo.entitlements[SubscriptionConfig.PREMIUM_ENTITLEMENT_ID]?.isActive == true
-                                if (hasPremium) {
-                                    showToast("✅ Purchase restored successfully!")
-                                } else {
-                                    showToast("No previous purchases found")
-                                }
-                            },
-                            onFailure = { error ->
-                                showToast("❌ Restore failed: ${error.message ?: "Unknown error"}")
-                            }
-                        )
-                    }
+                    onEvent(SettingsEvent.OnRestorePurchases)
                 }
             )
 
@@ -174,20 +160,42 @@ fun SettingsScreen(
             Text("APPEARANCE", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
             AppearanceSection(
                 currentMode = state.themeMode,
-                onModeSelected = { viewModel.onEvent(SettingsEvent.OnThemeChanged(it)) }
+                onModeSelected = { onEvent(SettingsEvent.OnThemeChanged(it)) }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             // Notifications
             Text("NOTIFICATIONS", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
+            
+
+            
             NotificationSection(
                 pushEnabled = state.isPushEnabled,
                 emailEnabled = state.isEmailEnabled,
                 badgeEnabled = state.isBadgeEnabled,
-                onPushToggle = { viewModel.onEvent(SettingsEvent.OnPushToggled(it)) },
-                onEmailToggle = { viewModel.onEvent(SettingsEvent.OnEmailToggled(it)) },
-                onBadgeToggle = { viewModel.onEvent(SettingsEvent.OnBadgeToggled(it)) }
+                onPushToggle = { enabled ->
+                    if (enabled) {
+                        // Request permission
+                        scope.launch {
+                            try {
+                                permissionsController.providePermission(dev.icerock.moko.permissions.Permission.REMOTE_NOTIFICATION)
+                                onEvent(SettingsEvent.OnPushToggled(true))
+                            } catch (e: Exception) {
+                                // Denied or error
+                                onEvent(SettingsEvent.OnPushToggled(false))
+                                if (e is dev.icerock.moko.permissions.DeniedAlwaysException) {
+                                    permissionsController.openAppSettings()
+                                }
+                            }
+                        }
+                    } else {
+                        // Just disable in state
+                        onEvent(SettingsEvent.OnPushToggled(false))
+                    }
+                },
+                onEmailToggle = { onEvent(SettingsEvent.OnEmailToggled(it)) },
+                onBadgeToggle = { onEvent(SettingsEvent.OnBadgeToggled(it)) }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -198,7 +206,8 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Logout
+            // Log Out (Redundant now, but acceptable to leave or remove. The user request "replace the edit button with logout" is satisfied by ProfileSection update. I'll remove the big bottom button to clean up)
+            /*
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -211,7 +220,7 @@ fun SettingsScreen(
             ) {
                 Text("Log Out", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold)
             }
-
+            */
             Spacer(modifier = Modifier.height(16.dp))
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text("Version 1.0.2", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
@@ -221,9 +230,14 @@ fun SettingsScreen(
 }
 
 
-
 @Composable
-fun ProfileSection(name: String, email: String, isPremium: Boolean) {
+fun ProfileSection(
+    name: String, 
+    email: String, 
+    imageBitmap: ImageBitmap?, 
+    isPremium: Boolean,
+    onLogoutClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -233,16 +247,36 @@ fun ProfileSection(name: String, email: String, isPremium: Boolean) {
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Avatar
         Box(
             modifier = Modifier
                 .size(56.dp)
                 .clip(CircleShape)
-                .background(Color.Gray.copy(alpha = 0.2f))
-        ) // Placeholder for avatar
+                .background(Color.Gray.copy(alpha = 0.2f)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (imageBitmap != null) {
+                androidx.compose.foundation.Image(
+                    bitmap = imageBitmap,
+                    contentDescription = "Profile Photo",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
+            } else {
+                Text(
+                    text = name.take(1).uppercase(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray
+                )
+            }
+        }
+        
         Spacer(modifier = Modifier.width(16.dp))
+        
         Column(modifier = Modifier.weight(1f)) {
-            Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(email, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+            Text(name.ifEmpty { "User" }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(email.ifEmpty { "No email" }, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             Spacer(modifier = Modifier.height(4.dp))
             Box(
                 modifier = Modifier
@@ -259,9 +293,24 @@ fun ProfileSection(name: String, email: String, isPremium: Boolean) {
                 )
             }
         }
-        Text("Edit", color = Indigo500, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
+        
+        // Logout Button
+        Box(
+            modifier = Modifier
+                .clickable(onClick = onLogoutClick)
+                .padding(8.dp)
+        ) {
+            Text(
+                "Log Out", 
+                color = Color(0xFFEF4444), 
+                fontWeight = FontWeight.SemiBold, 
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
     }
 }
+
+
 
 @Composable
 fun SubscriptionCard(onClick: () -> Unit = {}) {

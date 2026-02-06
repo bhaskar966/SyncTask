@@ -71,4 +71,7 @@ interface ReminderDao {
     // Unassign reminders from deleted group
     @Query("UPDATE ReminderEntity SET groupId = NULL, isSynced = 0 WHERE groupId = :groupId")
     suspend fun unassignRemindersFromGroup(groupId: String)
+
+    @Query("DELETE FROM ReminderEntity")
+    suspend fun deleteAllReminders()
 }

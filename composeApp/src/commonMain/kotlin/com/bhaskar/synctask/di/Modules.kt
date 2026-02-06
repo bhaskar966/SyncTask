@@ -5,12 +5,14 @@ import com.bhaskar.synctask.data.fcm.FCMInitializer
 import com.bhaskar.synctask.data.services.RecurrenceService
 import com.bhaskar.synctask.data.repository.ReminderRepositoryImpl
 import com.bhaskar.synctask.data.repository.GroupRepositoryImpl
+import com.bhaskar.synctask.data.repository.ProfileRepositoryImpl
 import com.bhaskar.synctask.data.repository.TagRepositoryImpl
 import com.bhaskar.synctask.data.sync.SyncService
 import com.bhaskar.synctask.db.SyncTaskDatabase
 import com.bhaskar.synctask.domain.repository.ReminderRepository
 import com.bhaskar.synctask.domain.repository.SubscriptionRepository
 import com.bhaskar.synctask.data.repository.SubscriptionRepositoryImpl
+import com.bhaskar.synctask.data.services.RevenueCatService
 import com.bhaskar.synctask.presentation.list.ReminderListViewModel
 import com.bhaskar.synctask.presentation.create.CreateReminderViewModel
 import com.bhaskar.synctask.presentation.detail.ReminderDetailViewModel
@@ -25,6 +27,7 @@ import kotlinx.coroutines.SupervisorJob
 import com.bhaskar.synctask.db.getSyncDatabase
 import com.bhaskar.synctask.domain.NotificationCalculator
 import com.bhaskar.synctask.domain.repository.GroupRepository
+import com.bhaskar.synctask.domain.repository.ProfileRepository
 import com.bhaskar.synctask.domain.repository.TagRepository
 import com.bhaskar.synctask.presentation.auth.AuthViewModel
 import com.bhaskar.synctask.presentation.groups.GroupsViewModel
@@ -51,7 +54,7 @@ val dataModule = module {
 
     // Services
     single { RecurrenceService() }
-    single { com.bhaskar.synctask.data.services.RevenueCatService() } // ✅ New Service
+    single { RevenueCatService() }
     single { NotificationCalculator(get()) }
 
     // Repositories
@@ -103,7 +106,10 @@ val dataModule = module {
     }
     
     // Subscription Repository
-    single<SubscriptionRepository> { SubscriptionRepositoryImpl(get()) } // ✅ Inject Service
+    single<SubscriptionRepository> { SubscriptionRepositoryImpl(get()) }
+
+    // Profile Repository
+    single<ProfileRepository> { ProfileRepositoryImpl() }
 }
 
 val domainModule = module {

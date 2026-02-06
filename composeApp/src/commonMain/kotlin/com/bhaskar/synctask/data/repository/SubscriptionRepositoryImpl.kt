@@ -1,7 +1,7 @@
 package com.bhaskar.synctask.data.repository
 
 import com.bhaskar.synctask.data.services.RevenueCatService
-import com.bhaskar.synctask.domain.repository.ActiveSubscriptionInfo
+import com.bhaskar.synctask.domain.model.ActiveSubscriptionInfo
 import com.bhaskar.synctask.domain.repository.SubscriptionRepository
 import com.bhaskar.synctask.domain.subscription.SubscriptionConfig
 import com.revenuecat.purchases.kmp.models.CustomerInfo
@@ -15,13 +15,14 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 /**
  * Implementation of SubscriptionRepository using RevenueCatService.
  * Holds domain logic for subscription state (e.g. checking entitlement ID).
  */
-@OptIn(kotlin.time.ExperimentalTime::class)
+@OptIn(ExperimentalTime::class)
 class SubscriptionRepositoryImpl(
     private val revenueCatService: RevenueCatService
 ) : SubscriptionRepository {

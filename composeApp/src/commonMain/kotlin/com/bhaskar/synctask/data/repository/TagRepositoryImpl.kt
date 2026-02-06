@@ -198,4 +198,8 @@ class TagRepositoryImpl(
             e.printStackTrace()
         }
     }
+
+    override suspend fun deleteAllLocalTags() = withContext(Dispatchers.IO) {
+        tagDao.deleteAllTags()
+    }
 }

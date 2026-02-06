@@ -2,29 +2,94 @@ package com.bhaskar.synctask.presentation.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dev.icerock.moko.permissions.DeniedAlwaysException
-import dev.icerock.moko.permissions.DeniedException
-import dev.icerock.moko.permissions.Permission
-import dev.icerock.moko.permissions.PermissionsController
-import dev.icerock.moko.permissions.notifications.REMOTE_NOTIFICATION
+import com.bhaskar.synctask.data.auth.AuthManager
+import com.bhaskar.synctask.presentation.settings.components.SettingsEvent
+import com.bhaskar.synctask.presentation.settings.components.SettingsState
+
+import kotlinx.coroutines.IO
+
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(
-    val permissionsController: PermissionsController // Inject this from compose
+    private val authManager: AuthManager,
+    private val reminderRepository: com.bhaskar.synctask.domain.repository.ReminderRepository,
+    private val groupRepository: com.bhaskar.synctask.domain.repository.GroupRepository,
+    private val tagRepository: com.bhaskar.synctask.domain.repository.TagRepository,
+    private val subscriptionRepository: com.bhaskar.synctask.domain.repository.SubscriptionRepository,
+    private val profileRepository: com.bhaskar.synctask.domain.repository.ProfileRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsState())
     val state = _state.asStateFlow()
 
     init {
-        checkPermission()
+        observeAuthState()
+        observeSubscription()
     }
 
-    fun onScreenResume() {
-        checkPermission()
+    private fun observeAuthState() {
+        viewModelScope.launch {
+            authManager.authState.collect { authState ->
+                if (authState is com.bhaskar.synctask.data.auth.AuthState.Authenticated) {
+                    _state.update { 
+                        it.copy(
+                            userName = authState.displayName ?: "User",
+                            userEmail = authState.email ?: "",
+                            userPhotoUrl = authState.photoUrl
+                        ) 
+                    }
+                    
+                    // Fetch profile image if URL is present and image is not yet loaded
+                    if (authState.photoUrl != null && _state.value.userProfileImage == null) {
+                        fetchProfileImage(authState.photoUrl)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun fetchProfileImage(url: String) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            _state.update { it.copy(isLoadingImage = true) }
+            val result = profileRepository.fetchProfileImage(url)
+            result.fold(
+                onSuccess = { bytes ->
+                    val bitmap = com.bhaskar.synctask.platform.byteArrayToImageBitmap(bytes)
+                    _state.update { it.copy(userProfileImage = bitmap) }
+                },
+                onFailure = {
+                    // Ignore failure, UI will show placeholder
+                }
+            )
+            _state.update { it.copy(isLoadingImage = false) }
+        }
+    }
+
+    private fun observeSubscription() {
+        viewModelScope.launch {
+            kotlinx.coroutines.flow.combine(
+                subscriptionRepository.isPremiumSubscribed,
+                subscriptionRepository.managementUrl,
+                subscriptionRepository.activeSubscriptionInfo
+            ) { isPremium, url, info ->
+                Triple(isPremium, url, info)
+            }.collect { (isPremium, url, info) ->
+                _state.update { 
+                    it.copy(
+                        isPremium = isPremium,
+                        managementUrl = url,
+                        activeSubscriptionInfo = info
+                    )
+                }
+            }
+        }
+    }
+
+    fun updatePushPermissionState(isGranted: Boolean) {
+        _state.update { it.copy(isPushEnabled = isGranted) }
     }
 
     fun onEvent(event: SettingsEvent) {
@@ -33,11 +98,9 @@ class SettingsViewModel(
                 _state.update { it.copy(themeMode = event.mode) }
             }
             is SettingsEvent.OnPushToggled -> {
-                if (event.enabled) {
-                    requestNotificationPermission()
-                } else {
-                    _state.update { it.copy(isPushEnabled = false) }
-                }
+                // UI handles the actual permission request/toggle logic
+                // Pass the RESULT back to VM via this event or updatePushPermissionState
+                _state.update { it.copy(isPushEnabled = event.enabled) }
             }
             is SettingsEvent.OnEmailToggled -> {
                 _state.update { it.copy(isEmailEnabled = event.enabled) }
@@ -46,41 +109,43 @@ class SettingsViewModel(
                 _state.update { it.copy(isBadgeEnabled = event.enabled) }
             }
             SettingsEvent.OnLogout -> {
-                // handle logout
+                viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    try {
+                        authManager.signOut()
+                        // Use repositories to clear data
+                        reminderRepository.deleteAllLocalReminders()
+                        groupRepository.deleteAllLocalGroups()
+                        tagRepository.deleteAllLocalTags()
+                    } catch (e: Exception) {
+                        println("Error during logout: ${e.message}")
+                    }
+                }
             }
-        }
-    }
-
-    private fun checkPermission() {
-        viewModelScope.launch {
-            try {
-                val isGranted = permissionsController.isPermissionGranted(Permission.REMOTE_NOTIFICATION)
-                _state.update { it.copy(isPushEnabled = isGranted) }
-            } catch (e: Exception) {
-                println("Error checking permission: ${e.message}")
+            SettingsEvent.OnRestorePurchases -> {
+                viewModelScope.launch {
+                    _state.update { it.copy(isRestoring = true) }
+                    try {
+                        val result = subscriptionRepository.restorePurchases()
+                        result.fold(
+                            onSuccess = { customerInfo ->
+                                val hasPremium = customerInfo.entitlements[com.bhaskar.synctask.domain.subscription.SubscriptionConfig.PREMIUM_ENTITLEMENT_ID]?.isActive == true
+                                if (hasPremium) {
+                                    com.bhaskar.synctask.platform.showToast("✅ Purchase restored successfully!")
+                                } else {
+                                    com.bhaskar.synctask.platform.showToast("No previous purchases found")
+                                }
+                            },
+                            onFailure = { error ->
+                                com.bhaskar.synctask.platform.showToast("❌ Restore failed: ${error.message}")
+                            }
+                        )
+                    } catch (e: Exception) {
+                        com.bhaskar.synctask.platform.showToast("❌ Restore error: ${e.message}")
+                    } finally {
+                        _state.update { it.copy(isRestoring = false) }
+                    }
+                }
             }
-        }
-    }
-
-    private fun requestNotificationPermission() {
-        viewModelScope.launch {
-            try {
-                permissionsController.providePermission(Permission.REMOTE_NOTIFICATION)
-                _state.update { it.copy(isPushEnabled = true) }
-            } catch (denied: DeniedAlwaysException) {
-                // User denied with "Don't ask again" or needs to enable in settings
-                _state.update { it.copy(isPushEnabled = false) }
-                openAppSettings()
-            } catch (denied: DeniedException) {
-                // User denied once
-                _state.update { it.copy(isPushEnabled = false) }
-            }
-        }
-    }
-
-    fun openAppSettings() {
-        viewModelScope.launch {
-            permissionsController.openAppSettings()
         }
     }
 }

@@ -224,4 +224,8 @@ class GroupRepositoryImpl(
     override suspend fun unassignRemindersFromGroup(groupId: String) = withContext(Dispatchers.IO) {
         reminderDao.unassignRemindersFromGroup(groupId)
     }
+
+    override suspend fun deleteAllLocalGroups() = withContext(Dispatchers.IO) {
+        groupDao.deleteAllGroups()
+    }
 }

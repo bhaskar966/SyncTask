@@ -6,6 +6,7 @@ sealed class AuthState {
     data class Authenticated(
         val uid: String,
         val displayName: String?,
-        val email: String?
+        val email: String?,
+        val photoUrl: String?
     ) : AuthState()
 }

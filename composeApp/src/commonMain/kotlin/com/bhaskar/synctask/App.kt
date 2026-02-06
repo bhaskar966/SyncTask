@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import kotlinx.coroutines.launch
 import com.bhaskar.synctask.data.auth.AuthManager
 import com.bhaskar.synctask.data.auth.AuthState
 import com.bhaskar.synctask.platform.NotificationScheduler
@@ -23,6 +24,7 @@ import com.bhaskar.synctask.presentation.detail.ReminderDetailViewModel
 import com.bhaskar.synctask.presentation.list.ReminderListViewModel
 import com.bhaskar.synctask.presentation.navigation.BottomNavHost
 import com.bhaskar.synctask.presentation.settings.SettingsScreen
+import com.bhaskar.synctask.presentation.settings.SettingsViewModel
 import com.bhaskar.synctask.presentation.utils.MainRoutes
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.compose.koinInject
@@ -146,7 +148,36 @@ private fun MainAppContent(notificationScheduler: NotificationScheduler) {
 
         // Settings Screen
         composable<MainRoutes.SettingsScreen> {
+            val settingsViewModel: SettingsViewModel = koinViewModel()
+            val settingsState by settingsViewModel.state.collectAsState()
+            
+            // Create permission controller at NavHost level for Settings scope
+            val factory = dev.icerock.moko.permissions.compose.rememberPermissionsControllerFactory()
+            val permissionsController = remember(factory) { factory.createPermissionsController() }
+            
+            // Note: We need a way to pass this controller to the ViewModel if it expects it in constructor
+            // However, Koin injects it. If Koin injects it, we don't pass it manually to constructor here.
+            // BUT: PermissionsController usually needs to be created in Composable scope.
+            // The user's previous code injected it into VM via Koin? No, it passed it manually:
+            // SettingsViewModel(permissionsController = permissionsController...)
+            // So we need to ensure Koin module provides it OR we pass it. 
+            // The current VM definition in Modules.kt uses `viewModelOf(::SettingsViewModel)`. 
+            // Koin can't auto-inject a Composable-scoped PermissionsController. 
+            // LIMITATION: We must effectively "inject" the controller into the VM after creation or refactor VM.
+            // Refactoring VM to NOT take controller in constructor but as method arg is safer for KMP.
+            // OR: We define a generic "PermissionManager" that is a singleton, but Moko requires UI binding.
+            
+            // Let's look at `SettingsViewModel` constructor again. It takes `permissionsController`.
+            // If we use strict `koinViewModel()`, Koin needs to know how to build `PermissionsController`.
+            // It's not in Koin modules. So `koinViewModel()` will fail if we don't provide parameters.
+            
+            // Fix: No parameters needed now. ViewModel is clean.
+            val viewModel: SettingsViewModel = koinViewModel()
+            val state by viewModel.state.collectAsState()
+
             SettingsScreen(
+                state = state,
+                onEvent = viewModel::onEvent,
                 onNavigateBack = {
                     navController.popBackStack()
                 },

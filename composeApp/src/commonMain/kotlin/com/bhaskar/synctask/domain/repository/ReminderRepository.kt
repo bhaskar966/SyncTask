@@ -20,4 +20,5 @@ interface ReminderRepository {
     suspend fun getReminderCountByGroup(groupId: String): Int
     suspend fun getActiveReminderCount(userId: String): Int
     suspend fun getPinnedReminderCount(userId: String): Int
+    suspend fun deleteAllLocalReminders()
 }

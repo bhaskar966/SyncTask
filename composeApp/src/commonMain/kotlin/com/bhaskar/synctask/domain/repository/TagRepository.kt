@@ -22,4 +22,6 @@ interface TagRepository {
 
     // Sync
     suspend fun syncTags(userId: String)
+
+    suspend fun deleteAllLocalTags()
 }

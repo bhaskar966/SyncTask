@@ -45,7 +45,8 @@ class AuthManager(
                     AuthState.Authenticated(
                         uid = firebaseUser.uid,
                         displayName = firebaseUser.displayName,
-                        email = firebaseUser.email
+                        email = firebaseUser.email,
+                        photoUrl = firebaseUser.photoURL
                     )
                 } else {
                     AuthState.Unauthenticated

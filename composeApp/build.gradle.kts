@@ -136,7 +136,7 @@ kotlin {
         }
 
         iosMain.dependencies {
-            implementation(libs.ktor.client.cio)
+            implementation(libs.ktor.client.darwin)
         }
 
         named { it.lowercase().startsWith("ios") }.configureEach {

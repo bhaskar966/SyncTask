@@ -28,4 +28,7 @@ interface GroupDao {
 
     @Query("SELECT COUNT(*) FROM ReminderGroup WHERE userId = :userId")
     suspend fun getGroupCount(userId: String): Int
+
+    @Query("DELETE FROM ReminderGroup")
+    suspend fun deleteAllGroups()
 }

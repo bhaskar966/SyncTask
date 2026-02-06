@@ -24,4 +24,6 @@ interface GroupRepository {
     suspend fun syncGroups(userId: String)
 
     suspend fun unassignRemindersFromGroup(groupId: String)
+
+    suspend fun deleteAllLocalGroups()
 }
