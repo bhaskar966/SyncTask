@@ -2,7 +2,8 @@ package com.bhaskar.synctask.domain.subscription
 
 object SubscriptionConfig {
     // RevenueCat entitlement ID - matches what you configured in RevenueCat dashboard
-    const val PREMIUM_ENTITLEMENT_ID = "premium_test"
+    // To test ios, add "premium_test" and for android use "premium_playstore"
+    const val PREMIUM_ENTITLEMENT_ID = "premium_playstore"
     
     // Testing flag - strictly for dev use, kept as constant reference if needed, 
     // but logic should prefer passed-in state.
