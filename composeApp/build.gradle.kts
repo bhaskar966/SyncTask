@@ -160,7 +160,7 @@ android {
         applicationId = "com.bhaskar.synctask"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0"
 
         buildConfigField("String", "WEB_CLIENT_ID", "\"$webClientId\"")
@@ -179,7 +179,8 @@ android {
 
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
         }
     }
 
