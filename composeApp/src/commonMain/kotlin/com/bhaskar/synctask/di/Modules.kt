@@ -15,7 +15,6 @@ import com.bhaskar.synctask.data.repository.SubscriptionRepositoryImpl
 import com.bhaskar.synctask.data.services.RevenueCatService
 import com.bhaskar.synctask.presentation.list.ReminderListViewModel
 import com.bhaskar.synctask.presentation.create.CreateReminderViewModel
-import com.bhaskar.synctask.presentation.detail.ReminderDetailViewModel
 import com.bhaskar.synctask.presentation.settings.SettingsViewModel
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -31,6 +30,7 @@ import com.bhaskar.synctask.domain.repository.ProfileRepository
 import com.bhaskar.synctask.domain.repository.TagRepository
 import com.bhaskar.synctask.presentation.auth.AuthViewModel
 import com.bhaskar.synctask.presentation.groups.GroupsViewModel
+import com.bhaskar.synctask.presentation.history.HistoryViewModel
 
 expect val platformModule: Module
 
@@ -115,10 +115,10 @@ val dataModule = module {
 val domainModule = module {
     viewModelOf(::ReminderListViewModel)
     viewModelOf(::CreateReminderViewModel)
-    viewModelOf(::ReminderDetailViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::AuthViewModel)
     viewModelOf(::GroupsViewModel)
+    viewModelOf(::HistoryViewModel)
 }
 
 fun initKoin(config: (KoinApplication.() -> Unit)? = null) {

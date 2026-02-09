@@ -1,13 +1,14 @@
 package com.bhaskar.synctask.presentation.groups
 
-
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -46,304 +47,265 @@ import com.bhaskar.synctask.domain.model.ReminderGroup
 import com.bhaskar.synctask.domain.subscription.SubscriptionConfig
 import com.bhaskar.synctask.presentation.groups.components.GroupsEvent
 import com.bhaskar.synctask.presentation.groups.ui_components.CreateGroupDialog
-import com.bhaskar.synctask.presentation.theme.Indigo500
 import com.bhaskar.synctask.presentation.utils.parseHexColor
+import androidx.compose.ui.draw.blur
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.IntSize
+import com.bhaskar.synctask.domain.model.ReminderStatus
+import com.bhaskar.synctask.domain.model.SubTask
+import com.bhaskar.synctask.presentation.components.MaxLimitReachedDialog
+import com.bhaskar.synctask.presentation.components.PremiumLimitDialog
+import com.bhaskar.synctask.presentation.list.ui_components.ReminderCard
+import com.bhaskar.synctask.presentation.groups.ui_components.GroupItem
+import com.bhaskar.synctask.presentation.list.ui_components.ContextMenuOverlay
+import com.bhaskar.synctask.presentation.list.ui_components.ContextMenuItem
+import com.bhaskar.synctask.presentation.list.ui_components.HeaderSection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupsScreen(
-    viewModel: GroupsViewModel,
+    state: com.bhaskar.synctask.presentation.groups.components.GroupsState,
+    onEvent: (GroupsEvent) -> Unit,
     onNavigateToReminder: (String) -> Unit,
-    onNavigateToSubscription: () -> Unit
+    onNavigateToSubscription: () -> Unit,
+    onNavigateToSettings: () -> Unit
 ) {
-    val state by viewModel.state.collectAsState()
-    val groups by viewModel.groups.collectAsState()
-    val ungroupedReminders by viewModel.ungroupedReminders.collectAsState()
-    val isPremium by viewModel.isPremium.collectAsState()
+    // Context Menu State
+    var activeReminder by remember { mutableStateOf<Reminder?>(null) }
+    var activeGroup by remember { mutableStateOf<ReminderGroup?>(null) }
+    var contextMenuPosition by remember { mutableStateOf(Offset.Zero) }
+    var contextMenuSize by remember { mutableStateOf(IntSize.Zero) }
+    var isContextMenuVisible by remember { mutableStateOf(false) }
+
+    val blurRadius by animateDpAsState(targetValue = if (isContextMenuVisible) 16.dp else 0.dp)
 
     // Show create/edit dialog
     if (state.isDialogVisible) {
         CreateGroupDialog(
             state = state,
-            onEvent = viewModel::onEvent,
-            onDismiss = { viewModel.onEvent(GroupsEvent.HideDialog) }
+            onEvent = onEvent,
+            onDismiss = { onEvent(GroupsEvent.HideDialog) }
         )
     }
 
     // Show premium dialog
     if (state.showPremiumDialog) {
-        PremiumLimitDialog(
-            message = state.premiumDialogMessage,
-            onDismiss = { viewModel.onEvent(GroupsEvent.DismissPremiumDialog) },
-            onUpgrade = {
-                viewModel.onEvent(GroupsEvent.DismissPremiumDialog)
-                onNavigateToSubscription()
-            }
-        )
-    }
-
-    Scaffold(
-        topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Groups",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
-                // Group count indicator
-                Text(
-                    text = "${groups.size}/${SubscriptionConfig.getMaxGroups(isPremium)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { viewModel.onEvent(GroupsEvent.ShowCreateDialog) },
-                containerColor = Indigo500,
-                contentColor = Color.White,
-                shape = CircleShape,
-                modifier = Modifier.size(56.dp)
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add Group")
-            }
-        }
-    ) { paddingValues ->
-        if (groups.isEmpty() && ungroupedReminders.isEmpty()) {
-            // Empty state
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(
-                        text = "📁",
-                        style = MaterialTheme.typography.displayLarge
-                    )
-                    Text(
-                        text = "No Groups Yet",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Create groups to organize your reminders",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 48.dp)
-                    )
-                }
-            }
+        if (state.isMaxLimitReached) {
+            MaxLimitReachedDialog(
+                message = state.premiumDialogMessage,
+                onDismiss = { onEvent(GroupsEvent.DismissPremiumDialog) }
+            )
         } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // User's groups
-                items(groups, key = { it.id }) { group ->
-                    GroupCard(
-                        group = group,
-                        isExpanded = group.id in state.expandedGroupIds,
-                        viewModel = viewModel,
-                        onToggleExpand = { viewModel.onEvent(GroupsEvent.ToggleGroupExpanded(group.id)) },
-                        onEdit = { viewModel.onEvent(GroupsEvent.ShowEditDialog(group)) },
-                        onDelete = { viewModel.onEvent(GroupsEvent.DeleteGroup(group.id)) },
-                        onReminderClick = onNavigateToReminder
-                    )
+            PremiumLimitDialog(
+                message = state.premiumDialogMessage,
+                onDismiss = { onEvent(GroupsEvent.DismissPremiumDialog) },
+                onUpgrade = {
+                    onEvent(GroupsEvent.DismissPremiumDialog)
+                    onNavigateToSubscription()
                 }
-
-                // Ungrouped reminders section
-                if (ungroupedReminders.isNotEmpty()) {
-                    item {
-                        Spacer(Modifier.height(8.dp))
-                        UngroupedSection(
-                            reminders = ungroupedReminders,
-                            isExpanded = "ungrouped" in state.expandedGroupIds,
-                            onToggleExpand = { viewModel.onEvent(GroupsEvent.ToggleGroupExpanded("ungrouped")) },
-                            onReminderClick = onNavigateToReminder
-                        )
-                    }
-                }
-
-                // Bottom padding for FAB
-                item {
-                    Spacer(Modifier.height(80.dp))
-                }
-            }
+            )
         }
     }
-}
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun GroupCard(
-    group: ReminderGroup,
-    isExpanded: Boolean,
-    viewModel: GroupsViewModel,
-    onToggleExpand: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onReminderClick: (String) -> Unit
-) {
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    val reminders by remember(group.id) {
-        viewModel.getRemindersForGroup(group.id)
-    }.collectAsState()
-
-    val reminderCount = reminders.size
-
-    // Delete confirmation dialog
-    if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            icon = { Icon(Icons.Default.Warning, contentDescription = null) },
-            title = { Text("Delete Group?") },
-            text = {
-                Text(
-                    if (reminderCount > 0) {
-                        "$reminderCount reminder(s) will be moved to 'Ungrouped'."
-                    } else {
-                        "Are you sure you want to delete '${group.name}'?"
+    // Context Menu Overlay
+    val contextMenuSurfaceCol = MaterialTheme.colorScheme.surface
+    val contextMenuErrorCol = MaterialTheme.colorScheme.error
+    val contextMenuItems = remember(activeReminder, activeGroup) {
+        val items = mutableListOf<ContextMenuItem>()
+        
+        if (activeReminder != null) {
+            val isPinned = activeReminder!!.isPinned
+            items.add(
+                ContextMenuItem(
+                    label = if (isPinned) "Unpin" else "Pin",
+                    icon = Icons.Default.PushPin,
+                    color = contextMenuSurfaceCol,
+                    onClick = {
+                        onEvent(GroupsEvent.TogglePin(activeReminder!!))
+                        isContextMenuVisible = false
                     }
                 )
-            },
-            confirmButton = {
-                Button(
+            )
+
+            items.add(
+                ContextMenuItem(
+                    label = "Delete Reminder",
+                    icon = Icons.Default.Delete,
+                    color = contextMenuErrorCol,
                     onClick = {
-                        onDelete()
-                        showDeleteDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Delete")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
+                        onEvent(GroupsEvent.DeleteReminder(activeReminder!!.id))
+                        isContextMenuVisible = false
+                    }
+                )
+            )
+        } else if (activeGroup != null) {
+             items.add(
+                ContextMenuItem(
+                    label = "Delete Group",
+                    icon = Icons.Default.Delete,
+                    color = contextMenuErrorCol,
+                    onClick = {
+                        onEvent(GroupsEvent.DeleteGroup(activeGroup!!.id))
+                        isContextMenuVisible = false
+                    }
+                )
+            )
+        }
+        items
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = parseHexColor(group.colorHex).copy(alpha = 0.1f)
-        )
-    ) {
-        Column {
-            // Group Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .combinedClickable(
-                        onClick = onToggleExpand,
-                        onLongClick = onEdit
-                    )
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Icon
+    ContextMenuOverlay(
+        visible = isContextMenuVisible,
+        position = contextMenuPosition,
+        size = contextMenuSize,
+        onDismiss = { isContextMenuVisible = false },
+        menuItems = contextMenuItems,
+        content = {
+            if (activeReminder != null) {
+                // Show Reminder Card in overlay
+                ReminderCard(
+                    reminder = activeReminder!!,
+                    onCheckedChange = {},
+                    onSubtaskChecked = { _, _ -> },
+                    onClick = {},
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else if (activeGroup != null) {
+                // Show Group Item (collapsed) in overlay
+                GroupItem(
+                    group = activeGroup!!,
+                    isExpanded = false,
+                    reminders = emptyList(), // Don't show reminders in context menu preview
+                    onToggleExpand = {},
+                    onEditGroup = {},
+                    onReminderClick = {},
+                    onReminderLongClick = { _, _, _ -> },
+                    onGroupLongClick = { _, _ -> },
+                    onReminderChecked = { _, _ -> },
+                    onSubtaskChecked = { _, _, _ -> }
+                )
+            }
+        }
+    )
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .blur(blurRadius)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            // Header Section
+            HeaderSection(
+                title = "Groups",
+                syncDeviceCount = 0, // Placeholder, Groups screen might not show sync status or get it from common state
+                searchQuery = state.searchQuery,
+                onSearchQueryChanged = { onEvent(GroupsEvent.OnSearchQueryChanged(it)) },
+                onNavigateToSettings = onNavigateToSettings,
+                searchPlaceholder = "Search groups..."
+            )
+
+            if (state.groupsWithReminders.isEmpty() && state.ungroupedReminders.isEmpty()) {
+                // Empty state
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(parseHexColor(group.colorHex)),
+                        .weight(1f)
+                        .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = group.icon,
-                        style = MaterialTheme.typography.headlineMedium
-                    )
-                }
-
-                // Name and count
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = group.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "$reminderCount reminder${if (reminderCount != 1) "s" else ""}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                // Actions
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onEdit) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "Edit",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Delete",
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
-
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (isExpanded) "Collapse" else "Expand",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // Expanded reminders
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column {
-                    HorizontalDivider()
-                    if (reminders.isEmpty()) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                         Text(
-                            text = "No reminders in this group",
+                            text = "📁",
+                            style = MaterialTheme.typography.displayLarge
+                        )
+                        Text(
+                            text = "No Groups Yet",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Create groups to organize your reminders",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(16.dp),
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 48.dp)
                         )
-                    } else {
-                        reminders.forEach { reminder ->
-                            ReminderListItem(
-                                reminder = reminder,
-                                onClick = { onReminderClick(reminder.id) }
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Ungrouped reminders section (Top)
+                    if (state.ungroupedReminders.isNotEmpty()) {
+                        item(key = "ungrouped_section") {
+                            UngroupedSection(
+                                reminders = state.ungroupedReminders,
+                                isExpanded = "ungrouped" in state.expandedGroupIds,
+                                onToggleExpand = {
+                                    onEvent(GroupsEvent.ToggleGroupExpanded("ungrouped"))
+                                },
+                                onReminderClick = onNavigateToReminder,
+                                onReminderChecked = { reminder, isCompleted ->
+                                    onEvent(GroupsEvent.UpdateReminderStatus(reminder.id, isCompleted))
+                                },
+                                onSubtaskChecked = { reminder, subTask, isCompleted ->
+                                    onEvent(GroupsEvent.UpdateSubtaskStatus(reminder, subTask, isCompleted))
+                                },
+                                modifier = Modifier.animateItem()
                             )
                         }
+                    }
+
+                    // User's groups
+                    items(state.groupsWithReminders, key = { it.group.id }) { item ->
+                        val group = item.group
+                        val groupReminders = item.reminders
+
+                        GroupItem(
+                            group = group,
+                            isExpanded = group.id in state.expandedGroupIds,
+                            reminders = groupReminders,
+                            onToggleExpand = {
+                                onEvent(GroupsEvent.ToggleGroupExpanded(group.id))
+                            },
+                            onEditGroup = { onEvent(GroupsEvent.ShowEditDialog(group)) },
+                            onReminderClick = onNavigateToReminder,
+                            onGroupLongClick = { pos, size ->
+                                activeGroup = group
+                                activeReminder = null
+                                contextMenuPosition = pos
+                                contextMenuSize = size
+                                isContextMenuVisible = true
+                            },
+                            onReminderLongClick = { reminder, pos, size ->
+                                activeReminder = reminder
+                                activeGroup = null
+                                contextMenuPosition = pos
+                                contextMenuSize = size
+                                isContextMenuVisible = true
+                            },
+                            onReminderChecked = { reminder, isCompleted ->
+                                onEvent(GroupsEvent.UpdateReminderStatus(reminder.id, isCompleted))
+                            },
+                            onSubtaskChecked = { reminder, subTask, isCompleted ->
+                                onEvent(GroupsEvent.UpdateSubtaskStatus(reminder, subTask, isCompleted))
+                            },
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+
+                    // Bottom padding for FAB
+                    item {
+                        Spacer(Modifier.height(80.dp))
                     }
                 }
             }
@@ -356,41 +318,55 @@ private fun UngroupedSection(
     reminders: List<Reminder>,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
-    onReminderClick: (String) -> Unit
+    onReminderClick: (String) -> Unit,
+    onReminderChecked: (Reminder, Boolean) -> Unit,
+    onSubtaskChecked: (Reminder, SubTask, Boolean) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggleExpand),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
             // Header
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onToggleExpand)
-                    .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Icon(
-                    Icons.Default.FolderOpen,
-                    contentDescription = null,
-                    modifier = Modifier.size(32.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                // Icon Box
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f))
+                        .border(1.dp, MaterialTheme.colorScheme.secondaryContainer, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.FolderOpen,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Ungrouped",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "${reminders.size} reminder${if (reminders.size != 1) "s" else ""}",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -404,117 +380,27 @@ private fun UngroupedSection(
 
             // Expanded reminders
             AnimatedVisibility(
-                visible = isExpanded,
+                visible = isExpanded && reminders.isNotEmpty(),
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
-                Column {
-                    HorizontalDivider()
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     reminders.forEach { reminder ->
-                        ReminderListItem(
-                            reminder = reminder,
-                            onClick = { onReminderClick(reminder.id) }
+                        ReminderCard(
+                             reminder = reminder,
+                             onCheckedChange = { onReminderChecked(reminder, reminder.status != ReminderStatus.COMPLETED) },
+                             onSubtaskChecked = { subtask, isChecked -> onSubtaskChecked(reminder, subtask, isChecked) },
+                             onClick = { onReminderClick(reminder.id) },
+                             modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
             }
         }
     }
-}
-
-@Composable
-private fun ReminderListItem(
-    reminder: Reminder,
-    onClick: () -> Unit
-) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Icon (if available)
-            if (reminder.icon != null) {
-                Text(
-                    text = reminder.icon,
-                    style = MaterialTheme.typography.titleLarge
-                )
-            } else {
-                Icon(
-                    Icons.Default.CheckCircleOutline,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // Reminder info
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = reminder.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                if (reminder.description != null) {
-                    Text(
-                        text = reminder.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
-                    )
-                }
-            }
-
-            // Pin indicator
-            if (reminder.isPinned) {
-                Icon(
-                    Icons.Default.PushPin,
-                    contentDescription = "Pinned",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = "Open",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-// ✅ Simple Premium Dialog (you can enhance this later)
-@Composable
-private fun PremiumLimitDialog(
-    message: String,
-    onDismiss: () -> Unit,
-    onUpgrade: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Icon(
-                Icons.Default.Star,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-        },
-        title = { Text("Upgrade to Premium") },
-        text = { Text(message) },
-        confirmButton = {
-            Button(onClick = onUpgrade) {
-                Text("Upgrade Now")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Maybe Later")
-            }
-        }
-    )
 }

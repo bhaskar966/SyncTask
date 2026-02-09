@@ -3,6 +3,7 @@ package com.bhaskar.synctask.presentation.list.ui_components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,19 +39,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.bhaskar.synctask.domain.model.Priority
 import com.bhaskar.synctask.domain.model.RecurrenceRule
 import com.bhaskar.synctask.domain.model.Reminder
 import com.bhaskar.synctask.domain.model.ReminderStatus
-import com.bhaskar.synctask.presentation.theme.Amber500
-import com.bhaskar.synctask.presentation.theme.Indigo500
+import com.bhaskar.synctask.domain.model.SubTask
+import com.bhaskar.synctask.presentation.theme.ReminderColors
+import com.bhaskar.synctask.presentation.list.ui_components.CircularCheckbox
+import com.bhaskar.synctask.presentation.list.ui_components.SubtaskItem
+import com.bhaskar.synctask.presentation.theme.PredefinedIcons
 import kotlinx.datetime.TimeZone
 import com.bhaskar.synctask.presentation.utils.toLocalDateTime
 import kotlinx.datetime.DatePeriod
@@ -59,301 +68,227 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlin.time.Clock
 import kotlin.time.Instant
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 
-@Composable
-fun SectionHeader(
-    title: String,
-    count: Int,
-    color: Color,
-    icon: ImageVector? = null
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 4.dp, bottom = 8.dp, top = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = color
-            )
-        }
-        Text(
-            text = "$title ($count)".uppercase(),
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.5.sp
-            ),
-            color = color
-        )
-    }
-}
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ReminderCard(
     reminder: Reminder,
     onCheckedChange: () -> Unit,
+    onSubtaskChecked: (SubTask, Boolean) -> Unit,
     onClick: () -> Unit,
+    onLongClick: ((Offset, IntSize) -> Unit)? = null,
     onSnooze: ((Int) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showSnoozeMenu by remember { mutableStateOf(false) }
+    var itemPosition by remember { mutableStateOf(Offset.Zero) }
+    var itemSize by remember { mutableStateOf(IntSize.Zero) }
+
     val isUrgent = reminder.priority == Priority.HIGH
     val isSnoozed = reminder.status == ReminderStatus.SNOOZED
     val isMissed = reminder.status == ReminderStatus.MISSED
 
-    val borderColor = when {
-        isMissed -> Color(0xFFDC2626)
-        isUrgent -> Color(0xFFEF4444)
-        isSnoozed -> Amber500
-        else -> Indigo500
-    }
+    // Color Logic
+    val reminderColor = reminder.colorHex?.let { ReminderColors.getColorByHex(it) }
+        ?: MaterialTheme.colorScheme.primary
+    val containerColor = MaterialTheme.colorScheme.surfaceVariant
 
     Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .onGloballyPositioned { coordinates ->
+                itemPosition = coordinates.positionInRoot()
+                itemSize = coordinates.size
+            }
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = {
+                    onLongClick?.invoke(itemPosition, itemSize)
+                }
+            ),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = containerColor
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Row(modifier = Modifier.heightIn(min = 80.dp)) {
-            // Colored strip
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .fillMaxHeight()
-                    .background(borderColor)
-            )
-
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Checkbox
+                // Left Icon (Emoji in Circle)
                 Box(
                     modifier = Modifier
-                        .size(24.dp)
-                        .border(2.dp, borderColor, CircleShape)
-                        .clickable { onCheckedChange() },
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, reminderColor, CircleShape)
+                        .background(Color.Transparent),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (isMissed) {
-                        Icon(
-                            Icons.Filled.Close,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = Color(0xFFDC2626)
-                        )
-                    }
+                    Text(
+                        text = reminder.icon ?: PredefinedIcons.getDefaultIcon(), // Default icon
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontSize = 14.sp
+                    )
                 }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    // Title Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                // Center Content
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(1.dp)
+                ) {
+                    // Priority Indicator
+                    Box(
+                        modifier = Modifier
+                            .border(
+                                width = 1.dp,
+                                color = if (reminder.priority == Priority.HIGH) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                                shape = RoundedCornerShape(6.dp)
+                            )
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = reminder.title,
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
+                            text = reminder.priority.name.lowercase().replaceFirstChar { it.titlecase() }, // "High", "Medium", "Low"
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (reminder.priority == Priority.HIGH) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-
-                        if (isUrgent) {
-                            Surface(
-                                color = Color(0xFFEF4444).copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Text(
-                                    text = "HIGH",
-                                    color = Color(0xFFEF4444),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp
-                                    ),
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
                     }
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // Time and recurrence info
+                    // Title
+                    Text(
+                        text = reminder.title,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    // Description
+                    if (!reminder.description.isNullOrBlank()) {
+                        Text(
+                            text = reminder.description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    // Date & Time
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.DateRange,
-                                contentDescription = "Due",
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = formatDateTime(reminder.dueTime),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        val displayText = if (isSnoozed && reminder.snoozeUntil != null) {
+                            val duration = reminder.snoozeUntil - reminder.dueTime
+                            val durationStr = formatDuration(duration)
+                            "${formatDateTime(reminder.snoozeUntil)} (snoozed for $durationStr)"
+                        } else {
+                            formatDateTime(reminder.dueTime, reminder.deadline)
                         }
 
-                        // Recurrence indicator
-                        if (reminder.recurrence != null) {
-                            Surface(
-                                color = Indigo500.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Text(
-                                    text = formatRecurrence(reminder.recurrence),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 10.sp
-                                    ),
-                                    color = Indigo500,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
+                        Text(
+                            text = displayText,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp
+                        )
                     }
                 }
 
-                // Snooze button
-                if (onSnooze != null && !isMissed) {
-                    Box {
-                        IconButton(
-                            onClick = { showSnoozeMenu = true },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Filled.Notifications,
-                                contentDescription = "Snooze",
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        DropdownMenu(
-                            expanded = showSnoozeMenu,
-                            onDismissRequest = { showSnoozeMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("15 minutes") },
-                                onClick = {
-                                    onSnooze(15)
-                                    showSnoozeMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("30 minutes") },
-                                onClick = {
-                                    onSnooze(30)
-                                    showSnoozeMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("1 hour") },
-                                onClick = {
-                                    onSnooze(60)
-                                    showSnoozeMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("2 hours") },
-                                onClick = {
-                                    onSnooze(120)
-                                    showSnoozeMenu = false
-                                }
-                            )
-                        }
-                    }
-                }
+                // Right Checkbox
+                CircularCheckbox(
+                    checked = false, // Main reminder not checked yet
+                    onCheckedChange = onCheckedChange,
+                    color = reminderColor,
+                    size = 28.dp,
+                    checkmarkSize = 18.dp
+                )
             }
         }
-    }
-}
 
-@Composable
-fun CompletedReminderCard(
-    reminder: Reminder,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Icon(
-                Icons.Filled.CheckCircle,
-                contentDescription = "Completed",
-                modifier = Modifier.size(24.dp),
-                tint = Color(0xFF10B981)
-            )
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = reminder.title,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        textDecoration = TextDecoration.LineThrough
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                reminder.completedAt?.let { completedTime ->
-                    Text(
-                        text = "Completed ${formatDateTime(completedTime)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        // Subtasks Section (if any)
+        if (reminder.subtasks.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Column(
+                modifier = Modifier.padding(start = 20.dp) // Indent
+            ) {
+                reminder.subtasks.forEach { subtask ->
+                    SubtaskItem(
+                        subtask = subtask,
+                        onCheckedChange = { onSubtaskChecked(subtask, !subtask.isCompleted) },
+                        accentColor = reminderColor
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
 
 // Helper functions
-fun formatDateTime(timestamp: Long): String {
-    val instant = Instant.fromEpochMilliseconds(timestamp)
-    val datetime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+fun formatDateTime(timestamp: Long, deadline: Long? = null): String {
+    val timeZone = TimeZone.currentSystemDefault()
+    val startInstant = Instant.fromEpochMilliseconds(timestamp)
+    val startDateTime = startInstant.toLocalDateTime(timeZone)
+    val now = Clock.System.now().toLocalDateTime(timeZone)
 
-    val timeStr = "${datetime.hour.toString().padStart(2, '0')}:${datetime.minute.toString().padStart(2, '0')}"
+    val startTimeStr = "${startDateTime.hour.toString().padStart(2, '0')}:${
+        startDateTime.minute.toString().padStart(2, '0')
+    }"
+
+    val datePart = when (startDateTime.date) {
+        now.date -> "Today"
+        now.date.plus(DatePeriod(days = 1)) -> "Tomorrow"
+        now.date.minus(DatePeriod(days = 1)) -> "Yesterday"
+        else -> "${
+            startDateTime.date.month.name.lowercase()
+                .replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+        } ${startDateTime.date.day}"
+    }
+
+    if (deadline != null) {
+        val endInstant = Instant.fromEpochMilliseconds(deadline)
+        val endDateTime = endInstant.toLocalDateTime(timeZone)
+        val endTimeStr = "${endDateTime.hour.toString().padStart(2, '0')}:${
+            endDateTime.minute.toString().padStart(2, '0')
+        }"
+
+        return "$datePart $startTimeStr - $endTimeStr"
+    }
+
+    return "$datePart $startTimeStr"
+}
+
+fun formatDuration(millis: Long): String {
+    val seconds = millis / 1000
+    val minutes = seconds / 60
+    val hours = minutes / 60
+    val days = hours / 24
 
     return when {
-        datetime.date == now.date -> "Today $timeStr"
-        datetime.date == now.date.plus(DatePeriod(days = 1)) -> "Tomorrow $timeStr"
-        datetime.date == now.date.minus(DatePeriod(days = 1)) -> "Yesterday $timeStr"
-        else -> "${datetime.date.month.name.lowercase().capitalize()} ${datetime.date.day}, $timeStr"
+        days > 0 -> "$days day${if (days > 1) "s" else ""}"
+        hours > 0 -> "$hours hour${if (hours > 1) "s" else ""}"
+        minutes > 0 -> "$minutes minute${if (minutes > 1) "s" else ""}"
+        else -> "less than a minute"
     }
 }
 
@@ -363,18 +298,22 @@ fun formatRecurrence(recurrence: RecurrenceRule): String {
             if (recurrence.interval == 1) "Daily"
             else "Every ${recurrence.interval} days"
         }
+
         is RecurrenceRule.Weekly -> {
             if (recurrence.interval == 1) "Weekly"
             else "Every ${recurrence.interval} weeks"
         }
+
         is RecurrenceRule.Monthly -> {
             if (recurrence.interval == 1) "Monthly"
             else "Every ${recurrence.interval} months"
         }
+
         is RecurrenceRule.Yearly -> {
             if (recurrence.interval == 1) "Yearly"
             else "Every ${recurrence.interval} years"
         }
+
         is RecurrenceRule.CustomDays -> {
             "Every ${recurrence.interval} days"
         }

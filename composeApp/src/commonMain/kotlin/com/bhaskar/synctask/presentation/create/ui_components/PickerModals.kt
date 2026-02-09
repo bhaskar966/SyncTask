@@ -2,7 +2,6 @@ package com.bhaskar.synctask.presentation.create.ui_components
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import com.bhaskar.synctask.presentation.theme.Indigo500
 import com.bhaskar.synctask.presentation.utils.toLocalDateTime
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -18,7 +17,7 @@ fun DatePickerModal(
     onDismiss: () -> Unit
 ) {
     val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = selectedDate.atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+        initialSelectedDateMillis = selectedDate.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
     )
 
     DatePickerDialog(
@@ -27,11 +26,11 @@ fun DatePickerModal(
             TextButton(onClick = {
                 datePickerState.selectedDateMillis?.let { millis ->
                     val instant = Instant.fromEpochMilliseconds(millis)
-                    val localDate = instant.toLocalDateTime(TimeZone.currentSystemDefault()).date
+                    val localDate = instant.toLocalDateTime(TimeZone.UTC).date
                     onDateSelected(localDate)
                 }
             }) {
-                Text("OK", color = Indigo500)
+                Text("OK", color = MaterialTheme.colorScheme.primary)
             }
         },
         dismissButton = {
@@ -64,7 +63,7 @@ fun TimePickerModal(
                 val time = LocalTime(timePickerState.hour, timePickerState.minute)
                 onTimeSelected(time)
             }) {
-                Text("OK", color = Indigo500)
+                Text("OK", color = MaterialTheme.colorScheme.primary)
             }
         },
         dismissButton = {
@@ -73,7 +72,15 @@ fun TimePickerModal(
             }
         },
         text = {
-            TimePicker(state = timePickerState)
+            TimePicker(
+                state = timePickerState,
+                colors = TimePickerDefaults.colors(
+                    timeSelectorSelectedContainerColor = MaterialTheme.colorScheme.secondary,
+                    timeSelectorSelectedContentColor = MaterialTheme.colorScheme.onSecondary,
+                    timeSelectorUnselectedContainerColor = MaterialTheme.colorScheme.surfaceBright,
+                    timeSelectorUnselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
         }
     )
 }

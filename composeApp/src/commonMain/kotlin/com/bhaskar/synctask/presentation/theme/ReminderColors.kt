@@ -34,5 +34,5 @@ object ReminderColors {
         return colors.find { it.hex == hex }?.color
     }
 
-    fun getDefaultColor(): ColorOption = colors[12] // Indigo
+    fun getDefaultColor(): ColorOption = colors[17] // Gray
 }

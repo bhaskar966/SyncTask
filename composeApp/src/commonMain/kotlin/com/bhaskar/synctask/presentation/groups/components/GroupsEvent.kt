@@ -20,6 +20,10 @@ sealed class GroupsEvent {
     // CRUD events
     data object SaveGroup : GroupsEvent()
     data class DeleteGroup(val groupId: String) : GroupsEvent()
+    data class DeleteReminder(val reminderId: String) : GroupsEvent()
+    data class TogglePin(val reminder: com.bhaskar.synctask.domain.model.Reminder) : GroupsEvent()
+    data class UpdateReminderStatus(val reminderId: String, val isCompleted: Boolean) : GroupsEvent()
+    data class UpdateSubtaskStatus(val reminder: com.bhaskar.synctask.domain.model.Reminder, val subtask: com.bhaskar.synctask.domain.model.SubTask, val isCompleted: Boolean) : GroupsEvent()
 
     // Expand/collapse groups
     data class ToggleGroupExpanded(val groupId: String) : GroupsEvent()
@@ -30,4 +34,7 @@ sealed class GroupsEvent {
 
     // Navigate to reminder detail
     data class NavigateToReminder(val reminderId: String) : GroupsEvent()
+    
+    // Search
+    data class OnSearchQueryChanged(val query: String) : GroupsEvent()
 }

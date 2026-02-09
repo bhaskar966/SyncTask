@@ -67,23 +67,25 @@ fun IconPickerDialog(
                         fontWeight = FontWeight.Bold
                     )
 
+                    val actionIcon = if(selectedIcon != null) Icons.Default.Check else Icons.Default.Close
+
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, "Close")
+                        Icon(actionIcon, "Close")
                     }
                 }
 
                 Spacer(Modifier.height(16.dp))
 
                 // Search bar
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search icons...") },
-                    leadingIcon = { Icon(Icons.Default.Search, "Search") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
-                )
+//                OutlinedTextField(
+//                    value = searchQuery,
+//                    onValueChange = { searchQuery = it },
+//                    placeholder = { Text("Search icons...") },
+//                    leadingIcon = { Icon(Icons.Default.Search, "Search") },
+//                    modifier = Modifier.fillMaxWidth(),
+//                    singleLine = true,
+//                    shape = RoundedCornerShape(12.dp)
+//                )
 
                 Spacer(Modifier.height(16.dp))
 
@@ -103,9 +105,10 @@ fun IconPickerDialog(
 
                 // Icons Grid
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(6),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    columns = GridCells.Adaptive(minSize = 60.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(filteredIcons) { icon ->
@@ -114,7 +117,7 @@ fun IconPickerDialog(
                             isSelected = icon == selectedIcon,
                             onClick = {
                                 onIconSelected(icon)
-                                onDismiss()
+                                // We don't dismiss immediately so the user can see the selection highlight
                             }
                         )
                     }
@@ -132,32 +135,20 @@ private fun IconItem(
 ) {
     Box(
         modifier = Modifier
-            .size(56.dp)
+            .aspectRatio(1f)
             .clip(CircleShape)
             .background(
-                if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surfaceVariant
+                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             )
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        // Selected indicator
-        if (isSelected) {
-            Icon(
-                Icons.Default.Check,
-                contentDescription = "Selected",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(4.dp)
-                    .size(16.dp)
-            )
-        }
-
         Text(
             text = icon,
             style = MaterialTheme.typography.headlineMedium,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
         )
     }
 }

@@ -17,5 +17,17 @@ data class SettingsState(
     val isPremium: Boolean = false,
     val managementUrl: String? = null,
     val activeSubscriptionInfo: ActiveSubscriptionInfo? = null,
-    val isRestoring: Boolean = false
+    val isRestoring: Boolean = false,
+    
+    // Tags Management
+    val showTagsDialog: Boolean = false,
+    val tags: List<com.bhaskar.synctask.domain.model.Tag> = emptyList(),
+    val newTagName: String = "",
+    val newTagColor: String = "#6366F1", // Default Indigo
+    val tagsDialogError: String? = null,
+    
+    // Premium Dialog (for Limits)
+    val showPremiumDialog: Boolean = false,
+    val premiumDialogMessage: String = "",
+    val isMaxLimitReached: Boolean = false
 )

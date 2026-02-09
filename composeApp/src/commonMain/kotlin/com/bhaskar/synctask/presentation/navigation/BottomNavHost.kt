@@ -1,20 +1,27 @@
-package com.bhaskar.synctask.presentation.navigation
-
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.bhaskar.synctask.presentation.create.CreateReminderDialog
 import com.bhaskar.synctask.presentation.groups.GroupsScreen
 import com.bhaskar.synctask.presentation.groups.GroupsViewModel
+import com.bhaskar.synctask.presentation.groups.components.GroupsEvent
 import com.bhaskar.synctask.presentation.history.HistoryScreen
+import com.bhaskar.synctask.presentation.history.HistoryViewModel
 import com.bhaskar.synctask.presentation.list.ReminderListScreen
 import com.bhaskar.synctask.presentation.list.ReminderListViewModel
+import com.bhaskar.synctask.presentation.navigation.components.BottomNavigationBar
 import com.bhaskar.synctask.presentation.utils.BottomNavRoutes
 import com.bhaskar.synctask.presentation.utils.MainRoutes
 import org.koin.compose.viewmodel.koinViewModel
@@ -22,14 +29,48 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun BottomNavHost(
     mainNavController: NavHostController,
-    reminderListViewModel: ReminderListViewModel = koinViewModel()
+    reminderListViewModel: ReminderListViewModel = koinViewModel(),
+    groupsViewModel: GroupsViewModel = koinViewModel(),
+    historyViewModel: HistoryViewModel = koinViewModel(),
+    createReminderViewModel: com.bhaskar.synctask.presentation.create.CreateReminderViewModel = koinViewModel()
 ) {
     val bottomNavController = rememberNavController()
     val reminderListState by reminderListViewModel.state.collectAsState()
+    
+    // Create Reminder Sheet State
+    val createReminderState by createReminderViewModel.state.collectAsState()
+    val groups by createReminderViewModel.groups.collectAsState()
+    val tags by createReminderViewModel.tags.collectAsState()
+    var showSheet by remember { mutableStateOf(false) }
 
+    val openSheet: (String?) -> Unit = { reminderId ->
+        if (reminderId != null) {
+            createReminderViewModel.loadReminder(reminderId)
+        } else {
+            createReminderViewModel.resetState()
+        }
+        showSheet = true
+    }
+    
+    val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+    
+    val isReminders = currentDestination?.hierarchy?.any { it.route == BottomNavRoutes.RemindersScreen::class.qualifiedName } == true
+    val isGroups = currentDestination?.hierarchy?.any { it.route == BottomNavRoutes.GroupsScreen::class.qualifiedName } == true
+    
     Scaffold(
         bottomBar = {
-            BottomNavigationBar(navController = bottomNavController)
+            BottomNavigationBar(
+                navController = bottomNavController,
+                showAddButton = isReminders || isGroups,
+                onAddClick = {
+                    if (isReminders) {
+                        openSheet(null) // Open new reminder sheet
+                    } else if (isGroups) {
+                        groupsViewModel.onEvent(GroupsEvent.ShowCreateDialog)
+                    }
+                }
+            )
         }
     ) { paddingValues ->
         NavHost(
@@ -42,41 +83,62 @@ fun BottomNavHost(
                     reminderListState = reminderListState,
                     onReminderScreenEvent = reminderListViewModel::onEvent,
                     onNavigateToCreate = {
-                        mainNavController.navigate(com.bhaskar.synctask.presentation.utils.MainRoutes.CreateReminderScreen())
+                        openSheet(null)
                     },
                     onNavigateToDetail = { reminderId ->
-                        mainNavController.navigate(com.bhaskar.synctask.presentation.utils.MainRoutes.ReminderDetailScreen(reminderId))
+                        openSheet(reminderId)
                     },
                     onNavigateToSettings = {
-                        mainNavController.navigate(com.bhaskar.synctask.presentation.utils.MainRoutes.SettingsScreen)
+                        mainNavController.navigate(MainRoutes.SettingsScreen)
                     }
                 )
             }
 
             composable<BottomNavRoutes.GroupsScreen> {
-
-                val groupsViewModel: GroupsViewModel = koinViewModel()
+                // Shared viewmodel instance passed from above
+                val groupsState by groupsViewModel.state.collectAsState()
 
                 GroupsScreen(
-                    viewModel = groupsViewModel,
+                    state = groupsState,
+                    onEvent = groupsViewModel::onEvent,
                     onNavigateToReminder = { reminderId ->
-                        mainNavController.navigate(MainRoutes.ReminderDetailScreen(reminderId))
+                         openSheet(reminderId)
                     },
                     onNavigateToSubscription = {
                         mainNavController.navigate(MainRoutes.PaywallScreen)
+                    },
+                    onNavigateToSettings = {
+                        mainNavController.navigate(MainRoutes.SettingsScreen)
                     }
                 )
             }
 
             composable<BottomNavRoutes.HistoryScreen> {
+                val historyState by historyViewModel.state.collectAsState()
+                
                 HistoryScreen(
-                    reminderListState = reminderListState,
-                    onReminderScreenEvent = reminderListViewModel::onEvent,
-                    onNavigateToDetail = { reminderId ->
-                        mainNavController.navigate(com.bhaskar.synctask.presentation.utils.MainRoutes.ReminderDetailScreen(reminderId))
+                    state = historyState,
+                    onEvent = historyViewModel::onEvent,
+                    onNavigateToSettings = {
+                         mainNavController.navigate(MainRoutes.SettingsScreen)
+                    },
+                    // Added param, need to update HistoryScreen next
+                    onNavigateToReminder = { reminderId ->
+                        openSheet(reminderId)
                     }
                 )
             }
         }
+    }
+    
+    // Global Create/Edit Reminder Sheet
+    if (showSheet) {
+        CreateReminderDialog(
+            state = createReminderState,
+            onEvent = createReminderViewModel::onEvent,
+            groups = groups,
+            tags = tags,
+            onDismiss = { showSheet = false }
+        )
     }
 }

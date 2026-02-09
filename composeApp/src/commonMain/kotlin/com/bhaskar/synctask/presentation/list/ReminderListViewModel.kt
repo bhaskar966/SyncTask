@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
+import kotlinx.coroutines.flow.firstOrNull
 import com.bhaskar.synctask.presentation.utils.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -28,8 +29,12 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 
+import com.bhaskar.synctask.domain.repository.SubscriptionRepository
+import com.bhaskar.synctask.domain.subscription.SubscriptionConfig
+
 class ReminderListViewModel(
     private val reminderRepository: ReminderRepository,
+    private val subscriptionRepository: SubscriptionRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ReminderListState())
@@ -92,6 +97,70 @@ class ReminderListViewModel(
             ReminderListEvent.OnDismissSyncStatus -> {
                 // handled in UI
             }
+
+            is ReminderListEvent.OnSubtaskCheckedChange -> {
+                viewModelScope.launch(Dispatchers.IO) {
+                    val reminder = reminderRepository.getReminderById(event.reminderId).firstOrNull()
+                    if (reminder != null) {
+                        val updatedSubtasks = reminder.subtasks.map { subtask ->
+                            if (subtask.id == event.subtaskId) {
+                                subtask.copy(isCompleted = event.isCompleted)
+                            } else {
+                                subtask
+                            }
+                        }
+                        reminderRepository.updateReminder(reminder.copy(subtasks = updatedSubtasks))
+                    }
+                }
+            }
+
+            is ReminderListEvent.OnToggleSection -> {
+                _state.update {
+                    val sections = it.expandedSections.toMutableSet()
+                    if (sections.contains(event.sectionId)) {
+                        sections.remove(event.sectionId)
+                    } else {
+                        sections.add(event.sectionId)
+                    }
+                    it.copy(expandedSections = sections)
+                }
+            }
+
+            is ReminderListEvent.OnTogglePin -> {
+                viewModelScope.launch(Dispatchers.IO) {
+                    val reminder = event.reminder
+                    if (reminder.isPinned) {
+                        // Unpinning is always allowed
+                        reminderRepository.updateReminder(reminder.copy(isPinned = false))
+                    } else {
+                        // Pinning requires check
+                        val currentPinnedCount = reminderRepository.getPinnedReminderCount(reminder.userId)
+                        val isPremium = subscriptionRepository.isPremiumSubscribed.value
+                        
+                        if (SubscriptionConfig.canPinReminder(currentPinnedCount, isPremium)) {
+                            reminderRepository.updateReminder(reminder.copy(isPinned = true))
+                        } else {
+                            val message = if (isPremium) {
+                                "You can only pin up to ${SubscriptionConfig.Limits.PREMIUM_MAX_PINNED_REMINDERS} reminders."
+                            } else {
+                                SubscriptionConfig.UpgradeMessages.PINNED
+                            }
+                            
+                            _state.update {
+                                it.copy(
+                                    showPremiumDialog = true,
+                                    premiumDialogMessage = message,
+                                    isMaxLimitReached = isPremium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            ReminderListEvent.OnDismissPremiumDialog -> {
+                _state.update { it.copy(showPremiumDialog = false, premiumDialogMessage = "", isMaxLimitReached = false) }
+            }
         }
     }
 
@@ -117,6 +186,7 @@ class ReminderListViewModel(
         val todayEnd = todayDate.atTime(23, 59, 59).toInstant(timeZone).toEpochMilliseconds()
 
         // Grouping lists
+        val pinned = mutableListOf<Reminder>()
         val overdue = mutableListOf<Reminder>()
         val today = mutableListOf<Reminder>()
         val tomorrow = mutableListOf<Reminder>()
@@ -137,24 +207,29 @@ class ReminderListViewModel(
                     snoozed.add(reminder)
                 }
                 ReminderStatus.ACTIVE -> {
-                    categorizeActiveReminder(
-                        reminder = reminder,
-                        now = now,
-                        todayDate = todayDate,
-                        tomorrowDate = tomorrowDate,
-                        todayStart = todayStart,
-                        todayEnd = todayEnd,
-                        timeZone = timeZone,
-                        overdue = overdue,
-                        today = today,
-                        tomorrow = tomorrow,
-                        later = later
-                    )
+                    if (reminder.isPinned) {
+                        pinned.add(reminder)
+                    } else {
+                        categorizeActiveReminder(
+                            reminder = reminder,
+                            now = now,
+                            todayDate = todayDate,
+                            tomorrowDate = tomorrowDate,
+                            todayStart = todayStart,
+                            todayEnd = todayEnd,
+                            timeZone = timeZone,
+                            overdue = overdue,
+                            today = today,
+                            tomorrow = tomorrow,
+                            later = later
+                        )
+                    }
                 }
             }
         }
 
         return currentState.copy(
+            pinnedReminders = pinned.sortedBy { it.dueTime },
             overdueReminders = overdue.sortedBy { it.dueTime },
             todayReminders = today.sortedBy { it.dueTime },
             tomorrowReminders = tomorrow.sortedBy { it.dueTime },
@@ -179,30 +254,29 @@ class ReminderListViewModel(
         tomorrow: MutableList<Reminder>,
         later: MutableList<Reminder>
     ) {
-        if (reminder.deadline != null && reminder.recurrence != null) {
-            // Deadline reminder with recurrence
+        val deadline = reminder.deadline
+
+        if (deadline != null) {
             when {
-                // Currently in the active interval (dueTime to deadline)
-                reminder.dueTime <= now && now <= reminder.deadline -> today.add(reminder)
+                // Past deadline -> Overdue
+                now > deadline -> overdue.add(reminder)
 
-                // Upcoming interval starts today
-                reminder.dueTime in todayStart..todayEnd -> today.add(reminder)
+                // Active interval (Due <= Now <= Deadline) -> Today
+                reminder.dueTime <= now -> today.add(reminder)
 
-                // Upcoming interval starts tomorrow
-                reminder.dueTime > todayEnd -> {
+                // Future Due Date
+                else -> {
                     val dueDate = Instant.fromEpochMilliseconds(reminder.dueTime)
                         .toLocalDateTime(timeZone).date
                     when (dueDate) {
+                        todayDate -> today.add(reminder)
                         tomorrowDate -> tomorrow.add(reminder)
                         else -> later.add(reminder)
                     }
                 }
-
-                // Interval ended (should be MISSED, but handle gracefully)
-                now > reminder.deadline -> overdue.add(reminder)
             }
         } else {
-            // Normal reminder (no deadline or no recurrence)
+            // No deadline
             if (reminder.dueTime < now) {
                 overdue.add(reminder)
             } else {
@@ -217,4 +291,3 @@ class ReminderListViewModel(
         }
     }
 }
-

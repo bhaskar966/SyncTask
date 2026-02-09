@@ -78,15 +78,23 @@ data class CreateReminderState(
 
     val subtaskInput: String = "",
 
+    // Validation Errors
+    val titleError: String? = null,
+    val dueDateTimeError: String? = null,
+    val deadlineError: String? = null,
+    val reminderTimeError: String? = null,
+    
     // UI State
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
-    val validationError: String? = null,
     
     // Premium Dialog State
     val showPremiumDialog: Boolean = false,
     val premiumDialogMessage: String = "",
+    val isMaxLimitReached: Boolean = false,
+    // Navigation & Success
     val navigateToSubscription: Boolean = false,
+    val isSaveSuccess: Boolean = false
 ) {
     fun getDueTime(): Long {
         return if (hasSpecificTime) {

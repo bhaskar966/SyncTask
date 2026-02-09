@@ -1,5 +1,6 @@
 package com.bhaskar.synctask.presentation.groups.components
 
+import com.bhaskar.synctask.domain.model.Reminder
 import com.bhaskar.synctask.domain.model.ReminderGroup
 
 data class GroupsState(
@@ -17,10 +18,22 @@ data class GroupsState(
     // Premium dialog
     val showPremiumDialog: Boolean = false,
     val premiumDialogMessage: String = "",
+    val isMaxLimitReached: Boolean = false,
 
     // Expanded groups tracking (for expand/collapse)
     val expandedGroupIds: Set<String> = emptySet(),
 
     // Loading states
     val isLoading: Boolean = false,
+    
+    // Data
+    val groupsWithReminders: List<GroupWithReminders> = emptyList(),
+    val ungroupedReminders: List<com.bhaskar.synctask.domain.model.Reminder> = emptyList(),
+    val isPremium: Boolean = false,
+    val searchQuery: String = ""
+)
+
+data class GroupWithReminders(
+    val group: ReminderGroup,
+    val reminders: List<Reminder>
 )

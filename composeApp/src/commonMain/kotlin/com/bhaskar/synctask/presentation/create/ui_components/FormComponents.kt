@@ -14,96 +14,89 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.UnfoldMore
 import com.bhaskar.synctask.domain.model.Priority
-import com.bhaskar.synctask.presentation.theme.Indigo500
 
 @Composable
-fun SectionHeader(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge.copy(
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        ),
-        modifier = Modifier.padding(bottom = 8.dp)
-    )
+fun SectionHeader(
+    text: String,
+    trailingContent: (@Composable () -> Unit)? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp, top = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleSmall.copy(
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        )
+        if (trailingContent != null) {
+            trailingContent()
+        }
+    }
 }
 
 @Composable
-fun SelectionRow(
-    icon: ImageVector?,
-    text: String,
+fun CompactSelectableRow(
+    title: String,
+    selectedOption: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        if (icon != null) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
-            Spacer(modifier = Modifier.width(16.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                Icon(
+                    icon, 
+                    contentDescription = null, 
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant, 
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(Modifier.width(12.dp))
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
 
-@Composable
-fun ReminderOptionRow(
-    selected: Boolean,
-    text: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RadioButton(
-            selected = selected,
-            onClick = null,
-            colors = RadioButtonDefaults.colors(selectedColor = Indigo500)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(text, style = MaterialTheme.typography.bodyLarge)
-    }
-}
-
-@Composable
-fun PriorityChip(
-    priority: Priority,
-    isSelected: Boolean,
-    onSelect: () -> Unit
-) {
-    val color = if (isSelected) Indigo500 else Color.Transparent
-    val textColor = if (isSelected) Indigo500 else MaterialTheme.colorScheme.onSurface
-    val borderColor = if (isSelected) Indigo500.copy(alpha = 0.2f) else MaterialTheme.colorScheme.outline.copy(alpha=0.5f)
-    val containerColor = if (isSelected) Indigo500.copy(alpha = 0.1f) else Color.Transparent
-
-    Box(
-        modifier = Modifier
-            .height(40.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(containerColor)
-            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
-            .clickable(onClick = onSelect)
-            .padding(horizontal = 16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = priority.name.lowercase().replaceFirstChar { it.uppercase() },
-            color = textColor,
-            fontWeight = FontWeight.Medium
-        )
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.secondaryContainer,
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = selectedOption,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Spacer(Modifier.width(4.dp))
+                Icon(
+                    androidx.compose.material.icons.Icons.Default.UnfoldMore, 
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+        }
     }
 }
 
@@ -126,8 +119,8 @@ fun <T> ScrollableRowOfChips(
                 onClick = { onSelect(value) },
                 label = { Text(label) },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Indigo500,
-                    selectedLabelColor = Color.White
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }
@@ -135,38 +128,33 @@ fun <T> ScrollableRowOfChips(
 }
 
 @Composable
-fun HorizontalDivider(modifier: Modifier = Modifier) {
-    Spacer(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(1.dp)
-            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-    )
-}
-
-@Composable
 fun DateTimePickerBox(
     text: String,
     icon: ImageVector,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isError: Boolean = false
 ) {
+    val borderColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant
+    val textColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+    val iconColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+
     Row(
         modifier = modifier
             .height(56.dp)
             .clip(RoundedCornerShape(8.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha=0.5f), RoundedCornerShape(8.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start
     ) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+        Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
+            color = textColor
         )
     }
 }

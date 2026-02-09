@@ -20,14 +20,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.ArrowRight
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.ArrowRight
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.Mail
-import androidx.compose.material.icons.filled.MarkChatUnread
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
@@ -60,7 +59,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.bhaskar.synctask.domain.model.ActiveSubscriptionInfo
 import kotlinx.coroutines.launch
-import com.bhaskar.synctask.presentation.theme.Indigo500
 import dev.icerock.moko.permissions.compose.BindEffect
 import dev.icerock.moko.permissions.compose.rememberPermissionsControllerFactory
 import dev.icerock.moko.permissions.notifications.REMOTE_NOTIFICATION
@@ -68,6 +66,12 @@ import com.bhaskar.synctask.platform.openUrl
 import com.bhaskar.synctask.presentation.settings.components.SettingsEvent
 import com.bhaskar.synctask.presentation.settings.components.SettingsState
 import com.bhaskar.synctask.presentation.settings.components.ThemeMode
+import com.bhaskar.synctask.presentation.create.ui_components.SingleSelectionDialog
+import com.bhaskar.synctask.presentation.create.ui_components.CompactSelectableRow
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Tag
+import androidx.compose.runtime.mutableStateOf
+import com.bhaskar.synctask.presentation.settings.components.ManageTagsDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,6 +110,48 @@ fun SettingsScreen(
 
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    var showThemeDialog by remember { mutableStateOf(false) }
+
+    if (showThemeDialog) {
+        ThemeSelectionDialog(
+            currentMode = state.themeMode,
+            onModeSelected = { onEvent(SettingsEvent.OnThemeChanged(it)) },
+            onDismissRequest = { showThemeDialog = false }
+        )
+    }
+
+    if (state.showTagsDialog) {
+        ManageTagsDialog(
+            tags = state.tags,
+            newTagName = state.newTagName,
+            newTagColor = state.newTagColor,
+            error = state.tagsDialogError,
+            onNameChange = { onEvent(SettingsEvent.OnNewTagNameChanged(it)) },
+            onColorChange = { onEvent(SettingsEvent.OnNewTagColorChanged(it)) },
+            onCreateTag = { onEvent(SettingsEvent.OnCreateTag) },
+            onDeleteTag = { onEvent(SettingsEvent.OnDeleteTag(it)) },
+            onDismissRequest = { onEvent(SettingsEvent.OnHideTagsDialog) }
+        )
+    }
+
+    if (state.showPremiumDialog) {
+        if (state.isMaxLimitReached) {
+            com.bhaskar.synctask.presentation.components.MaxLimitReachedDialog(
+                message = state.premiumDialogMessage,
+                onDismiss = { onEvent(SettingsEvent.OnDismissPremiumDialog) }
+            )
+        } else {
+            com.bhaskar.synctask.presentation.components.PremiumLimitDialog(
+                message = state.premiumDialogMessage,
+                onDismiss = { onEvent(SettingsEvent.OnDismissPremiumDialog) },
+                onUpgrade = {
+                    onEvent(SettingsEvent.OnDismissPremiumDialog)
+                    onNavigateToPaywall()
+                }
+            )
         }
     }
 
@@ -157,52 +203,136 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Appearance
-            Text("APPEARANCE", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
-            AppearanceSection(
-                currentMode = state.themeMode,
-                onModeSelected = { onEvent(SettingsEvent.OnThemeChanged(it)) }
+            Text(
+                text = "APPEARANCE",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.Gray,
+                modifier = Modifier
+                    .padding(
+                        start = 8.dp,
+                        bottom = 8.dp
+                    )
             )
+            CompactSelectableRow(
+                title = "Theme",
+                selectedOption = when(state.themeMode) {
+                    ThemeMode.LIGHT -> "Light"
+                    ThemeMode.DARK -> "Dark"
+                    ThemeMode.SYSTEM -> "System Default"
+                },
+                onClick = { showThemeDialog = true },
+                icon = Icons.Default.Palette,
+                modifier = Modifier
+                    .padding(horizontal = 10.dp)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Content
+            Text(
+                text = "CONTENT",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.Gray,
+                modifier = Modifier
+                    .padding(
+                        start = 8.dp,
+                        bottom = 8.dp
+                    )
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .clickable { onEvent(SettingsEvent.OnShowTagsDialog) }
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                 Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Tag, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = "Manage Tags",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        contentDescription = "Manage Tags",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             // Notifications
             Text("NOTIFICATIONS", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
             
-
-            
-            NotificationSection(
-                pushEnabled = state.isPushEnabled,
-                emailEnabled = state.isEmailEnabled,
-                badgeEnabled = state.isBadgeEnabled,
-                onPushToggle = { enabled ->
-                    if (enabled) {
-                        // Request permission
-                        scope.launch {
-                            try {
-                                permissionsController.providePermission(dev.icerock.moko.permissions.Permission.REMOTE_NOTIFICATION)
-                                onEvent(SettingsEvent.OnPushToggled(true))
-                            } catch (e: Exception) {
-                                // Denied or error
-                                onEvent(SettingsEvent.OnPushToggled(false))
-                                if (e is dev.icerock.moko.permissions.DeniedAlwaysException) {
-                                    permissionsController.openAppSettings()
+            // Simplified Notification Item
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                 Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFFFFCC80).copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Filled.Notifications, contentDescription = null, tint = Color(0xFFEF6C00), modifier = Modifier.size(20.dp))
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Text("Push Notifications", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                Switch(
+                    checked = state.isPushEnabled,
+                    onCheckedChange = { enabled ->
+                        if (enabled) {
+                            // Request permission
+                            scope.launch {
+                                try {
+                                    permissionsController.providePermission(dev.icerock.moko.permissions.Permission.REMOTE_NOTIFICATION)
+                                    onEvent(SettingsEvent.OnPushToggled(true))
+                                } catch (e: Exception) {
+                                    // Denied or error
+                                    onEvent(SettingsEvent.OnPushToggled(false))
+                                    if (e is dev.icerock.moko.permissions.DeniedAlwaysException) {
+                                        permissionsController.openAppSettings()
+                                    }
                                 }
                             }
+                        } else {
+                            // Just disable in state
+                            onEvent(SettingsEvent.OnPushToggled(false))
                         }
-                    } else {
-                        // Just disable in state
-                        onEvent(SettingsEvent.OnPushToggled(false))
-                    }
-                },
-                onEmailToggle = { onEvent(SettingsEvent.OnEmailToggled(it)) },
-                onBadgeToggle = { onEvent(SettingsEvent.OnBadgeToggled(it)) }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Support
-            Text("SUPPORT", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
-            SupportSection()
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary
+                    )
+                )
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -281,7 +411,7 @@ fun ProfileSection(
             Box(
                 modifier = Modifier
                     .background(
-                        if (isPremium) Indigo500.copy(alpha = 0.2f) else Color.Gray.copy(alpha = 0.1f),
+                        if (isPremium) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f) else Color.Gray.copy(alpha = 0.5f),
                         RoundedCornerShape(4.dp)
                     )
                     .padding(horizontal = 6.dp, vertical = 2.dp)
@@ -289,7 +419,7 @@ fun ProfileSection(
                 Text(
                     if (isPremium) "Premium" else "Free Account",
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isPremium) Indigo500 else MaterialTheme.colorScheme.onSurface
+                    color = if (isPremium) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -306,41 +436,6 @@ fun ProfileSection(
                 fontWeight = FontWeight.SemiBold, 
                 style = MaterialTheme.typography.labelLarge
             )
-        }
-    }
-}
-
-
-
-@Composable
-fun SubscriptionCard(onClick: () -> Unit = {}) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .clickable(onClick = onClick)
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Indigo500),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Filled.Star, contentDescription = null, tint = Color.White)
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Premium Plan", fontWeight = FontWeight.SemiBold)
-                Text("Unlock unlimited reminders", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-            }
-            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.Gray)
         }
     }
 }
@@ -371,7 +466,7 @@ fun SubscriptionSection(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (isPremium) Indigo500 else Color.Gray.copy(alpha = 0.3f)),
+                        .background(if (isPremium) MaterialTheme.colorScheme.tertiary else Color.Gray.copy(alpha = 0.3f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -432,7 +527,7 @@ fun SubscriptionSection(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Indigo500)
+                            .background(MaterialTheme.colorScheme.tertiary)
                             .clickable { onUpgradeClick() }
                             .padding(12.dp),
                         contentAlignment = Alignment.Center
@@ -469,188 +564,28 @@ fun SubscriptionSection(
 }
 
 @Composable
-fun AppearanceSection(currentMode: ThemeMode, onModeSelected: (ThemeMode) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        ThemeOption(
-            icon = Icons.Filled.LightMode,
-            label = "Light",
-            isSelected = currentMode == ThemeMode.LIGHT,
-            onClick = { onModeSelected(ThemeMode.LIGHT) },
-            modifier = Modifier.weight(1f)
-        )
-        ThemeOption(
-            icon = Icons.Filled.DarkMode,
-            label = "Dark",
-            isSelected = currentMode == ThemeMode.DARK,
-            onClick = { onModeSelected(ThemeMode.DARK) },
-            modifier = Modifier.weight(1f)
-        )
-        ThemeOption(
-            icon = Icons.Filled.SettingsBrightness,
-            label = "Auto",
-            isSelected = currentMode == ThemeMode.SYSTEM,
-            onClick = { onModeSelected(ThemeMode.SYSTEM) },
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-@Composable
-fun ThemeOption(
-    icon: ImageVector,
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+fun ThemeSelectionDialog(
+    currentMode: ThemeMode,
+    onModeSelected: (ThemeMode) -> Unit,
+    onDismissRequest: () -> Unit
 ) {
-    Box(
-        modifier = modifier
-            .height(36.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Gray,
-                modifier = Modifier.size(16.dp)
-            )
-            Text(
-                label,
-                style = MaterialTheme.typography.labelMedium,
-                color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Gray,
-                fontWeight = FontWeight.Medium
-            )
+    SingleSelectionDialog(
+        title = "App Theme",
+        options = ThemeMode.entries,
+        selectedOption = currentMode,
+        onOptionSelected = {
+            onModeSelected(it)
+            onDismissRequest()
+        },
+        onDismissRequest = onDismissRequest,
+        labelProvider = {
+            when(it) {
+                ThemeMode.LIGHT -> "Light"
+                ThemeMode.DARK -> "Dark"
+                ThemeMode.SYSTEM -> "System Default"
+            }
         }
-    }
-}
-
-
-@Composable
-fun NotificationSection(
-    pushEnabled: Boolean,
-    emailEnabled: Boolean,
-    badgeEnabled: Boolean,
-    onPushToggle: (Boolean) -> Unit,
-    onEmailToggle: (Boolean) -> Unit,
-    onBadgeToggle: (Boolean) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-    ) {
-        NotificationItem(
-            icon = Icons.Filled.Notifications,
-            iconBg = Color(0xFFFFCC80),
-            iconColor = Color(0xFFEF6C00),
-            label = "Push Notifications",
-            checked = pushEnabled,
-            onCheckedChange = onPushToggle
-        )
-        HorizontalDivider()
-        NotificationItem(
-            icon = Icons.Filled.Mail,
-            iconBg = Color(0xFFBBDEFB),
-            iconColor = Color(0xFF1976D2),
-            label = "Email Summaries",
-            checked = emailEnabled,
-            onCheckedChange = onEmailToggle
-        )
-        HorizontalDivider()
-        NotificationItem(
-            icon = Icons.Filled.MarkChatUnread,
-            iconBg = Color(0xFFE1BEE7),
-            iconColor = Color(0xFF7B1FA2),
-            label = "Badge Count",
-            checked = badgeEnabled,
-            onCheckedChange = onBadgeToggle
-        )
-    }
-}
-
-
-
-@Composable
-fun NotificationItem(
-    icon: ImageVector,
-    iconBg: Color,
-    iconColor: Color,
-    label: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(iconBg.copy(alpha = 0.2f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(20.dp))
-        }
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Indigo500)
-        )
-    }
-}
-
-@Composable
-fun SupportSection() {
-     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-    ) {
-        SupportItem(label = "Help Center")
-        HorizontalDivider()
-        SupportItem(label = "Privacy Policy")
-    }
-}
-
-@Composable
-fun SupportItem(label: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { }
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-        Icon(androidx.compose.material.icons.Icons.Filled.ChevronRight, contentDescription = null, tint = Color.Gray)
-    }
-}
-
-@Composable
-fun HorizontalDivider(modifier: Modifier = Modifier) {
-    androidx.compose.material3.HorizontalDivider(
-        modifier = modifier.padding(horizontal = 16.dp),
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     )
 }
+
+

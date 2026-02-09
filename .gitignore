@@ -33,5 +33,9 @@ GoogleService-Info.plist
 **/GoogleService-Info.plist
 iosApp/iosApp/GoogleService-Info.plist
 
+# Release builds
+composeApp/release/
+*.aab
+
 # keystore
 syncTaskKey.jks

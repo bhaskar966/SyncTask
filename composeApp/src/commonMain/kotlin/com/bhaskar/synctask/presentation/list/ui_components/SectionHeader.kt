@@ -27,31 +27,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bhaskar.synctask.presentation.theme.Indigo500
-
-@Composable
-fun SectionHeader(
-    title: String,
-    count: Int,
-    color: Color
-) {
-    Text(
-        text = "$title ($count)".uppercase(),
-        style = MaterialTheme.typography.labelMedium.copy(
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.5.sp
-        ),
-        color = color,
-        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp, top = 8.dp)
-    )
-}
 
 @Composable
 fun HeaderSection(
+    title: String,
     syncDeviceCount: Int,
     searchQuery: String,
     onSearchQueryChanged: (String) -> Unit,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    searchPlaceholder: String = "Search..."
 ) {
     Column(
         modifier = Modifier
@@ -67,7 +51,7 @@ fun HeaderSection(
         ) {
             Column {
                 Text(
-                    text = "Reminders",
+                    text = title,
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
@@ -110,7 +94,7 @@ fun HeaderSection(
             value = searchQuery,
             onValueChange = onSearchQueryChanged,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Search reminders...") },
+            placeholder = { Text(searchPlaceholder) },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Filled.Search,
@@ -130,7 +114,7 @@ fun HeaderSection(
             singleLine = true,
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Indigo500,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
             )
         )

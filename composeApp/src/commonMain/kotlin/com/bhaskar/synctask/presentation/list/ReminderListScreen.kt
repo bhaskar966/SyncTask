@@ -1,90 +1,33 @@
 package com.bhaskar.synctask.presentation.list
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import com.bhaskar.synctask.presentation.list.ui_components.ReminderCard
-import com.bhaskar.synctask.presentation.list.ui_components.SectionHeader
-import com.bhaskar.synctask.presentation.theme.Amber500
-import com.bhaskar.synctask.presentation.theme.Indigo500
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import com.bhaskar.synctask.domain.model.Priority
-import com.bhaskar.synctask.domain.model.RecurrenceRule
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import com.bhaskar.synctask.domain.model.Reminder
-import com.bhaskar.synctask.domain.model.ReminderStatus
-import com.bhaskar.synctask.domain.repository.ReminderRepository
-import com.bhaskar.synctask.presentation.list.components.ReminderFilter
+import com.bhaskar.synctask.presentation.components.MaxLimitReachedDialog
+import com.bhaskar.synctask.presentation.components.PremiumLimitDialog
 import com.bhaskar.synctask.presentation.list.components.ReminderListEvent
 import com.bhaskar.synctask.presentation.list.components.ReminderListState
-import com.bhaskar.synctask.presentation.list.ui_components.CompletedReminderCard
+import com.bhaskar.synctask.presentation.list.ui_components.CollapsibleSectionHeader
+import com.bhaskar.synctask.presentation.list.ui_components.ContextMenuOverlay
+import com.bhaskar.synctask.presentation.list.ui_components.ContextMenuItem
 import com.bhaskar.synctask.presentation.list.ui_components.HeaderSection
-import com.bhaskar.synctask.presentation.utils.toLocalDateTime
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
-import kotlinx.coroutines.launch
-import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.DayOfWeek
-import kotlinx.datetime.LocalTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atTime
-import kotlinx.datetime.minus
-import kotlinx.datetime.toInstant
-import org.koin.compose.koinInject
-import kotlin.coroutines.EmptyCoroutineContext.get
-import kotlin.time.Clock
-import kotlin.time.Instant
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
+import com.bhaskar.synctask.presentation.list.ui_components.ReminderCard
 
 @Composable
 fun ReminderListScreen(
@@ -95,266 +38,332 @@ fun ReminderListScreen(
     onReminderScreenEvent: (ReminderListEvent) -> Unit,
 ) {
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToCreate,
-                containerColor = Indigo500,
-                contentColor = Color.White,
-                shape = CircleShape,
-                modifier = Modifier.size(56.dp)
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add Reminder")
-            }
-        }
-    ) { paddingValues ->
+    var activeReminder by remember { mutableStateOf<Reminder?>(null) }
+    var activeReminderPosition by remember { mutableStateOf(Offset.Zero) }
+    var activeReminderSize by remember { mutableStateOf(IntSize.Zero) }
+    var isContextMenuVisible by remember { mutableStateOf(false) }
+
+    val blurRadius by animateDpAsState(targetValue = if (isContextMenuVisible) 3.dp else 0.dp)
+
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .blur(blurRadius)
                 .background(MaterialTheme.colorScheme.background)
         ) {
             // Header Section
             HeaderSection(
+                title = "Reminders",
                 syncDeviceCount = reminderListState.syncDeviceCount,
                 searchQuery = reminderListState.searchQuery,
                 onSearchQueryChanged = {
                     onReminderScreenEvent(ReminderListEvent.OnSearchQueryChanged(it))
                 },
-                onNavigateToSettings = onNavigateToSettings
+                onNavigateToSettings = onNavigateToSettings,
+                searchPlaceholder = "Search reminders..."
             )
-
-            // Filter Chips
-//            FilterSection(
-//                selectedFilter = reminderListState.selectedFilter,
-//                onFilterChanged = {
-//                    onReminderScreenEvent(ReminderListEvent.OnFilterChanged(it))
-//                }
-//            )
 
             // Main Content List
             ReminderSectionsList(
                 state = reminderListState,
+                onToggleSection = { sectionId ->
+                    onReminderScreenEvent(ReminderListEvent.OnToggleSection(sectionId))
+                },
                 onReminderClick = onNavigateToDetail,
                 onCompleteReminder = {
                     onReminderScreenEvent(ReminderListEvent.OnCompleteReminder(it))
                 },
                 onSnoozeReminder = { id, minutes ->
                     onReminderScreenEvent(ReminderListEvent.OnSnoozeReminder(id, minutes))
+                },
+                onSubtaskChecked = { reminderId, subtaskId, isChecked ->
+                    onReminderScreenEvent(ReminderListEvent.OnSubtaskCheckedChange(reminderId, subtaskId, isChecked))
+                },
+                onReminderLongClick = { reminder, position, size ->
+                    activeReminder = reminder
+                    activeReminderPosition = position
+                    activeReminderSize = size
+                    isContextMenuVisible = true
                 }
             )
+        }
+
+        // Context Menu Items
+        val contextMenuSurfaceCol = MaterialTheme.colorScheme.onSurface
+        val contextMenuErrorCol = MaterialTheme.colorScheme.error
+        val contextMenuItems = remember(activeReminder) {
+            val items = mutableListOf<ContextMenuItem>()
+            
+            activeReminder?.let { reminder ->
+                val isPinned = reminder.isPinned
+                items.add(
+                    ContextMenuItem(
+                        label = if (isPinned) "Unpin" else "Pin",
+                        icon = Icons.Default.PushPin,
+                        color = contextMenuSurfaceCol,
+                        onClick = {
+                            onReminderScreenEvent(ReminderListEvent.OnTogglePin(reminder))
+                            isContextMenuVisible = false
+                        }
+                    )
+                )
+
+                items.add(
+                    ContextMenuItem(
+                        label = "Delete",
+                        icon = Icons.Default.Delete,
+                        color = contextMenuErrorCol,
+                        onClick = {
+                            onReminderScreenEvent(ReminderListEvent.OnDeleteReminder(reminder.id))
+                            isContextMenuVisible = false
+                        }
+                    )
+                )
+            }
+            items
+        }
+
+        ContextMenuOverlay(
+            visible = isContextMenuVisible,
+            position = activeReminderPosition,
+            size = activeReminderSize,
+            onDismiss = { isContextMenuVisible = false },
+            menuItems = contextMenuItems,
+            content = {
+                if (activeReminder != null) {
+                    ReminderCard(
+                        reminder = activeReminder!!,
+                        onCheckedChange = {}, // Disable interaction in overlay
+                        onSubtaskChecked = { _, _ -> },
+                        onClick = {},
+                        modifier = Modifier.width(with(LocalDensity.current) { activeReminderSize.width.toDp() })
+                    )
+                }
+            }
+        )
+
+        if (reminderListState.showPremiumDialog) {
+            if (reminderListState.isMaxLimitReached) {
+                MaxLimitReachedDialog(
+                    message = reminderListState.premiumDialogMessage,
+                    onDismiss = { onReminderScreenEvent(ReminderListEvent.OnDismissPremiumDialog) }
+                )
+            } else {
+               PremiumLimitDialog(
+                    message = reminderListState.premiumDialogMessage,
+                    onDismiss = { onReminderScreenEvent(ReminderListEvent.OnDismissPremiumDialog) },
+                    onUpgrade = {
+                        onReminderScreenEvent(ReminderListEvent.OnDismissPremiumDialog)
+                    }
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun FilterSection(
-    selectedFilter: ReminderFilter,
-    onFilterChanged: (ReminderFilter) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        FilterChip(
-            selected = selectedFilter == ReminderFilter.ALL,
-            onClick = { onFilterChanged(ReminderFilter.ALL) },
-            label = { Text("All") }
-        )
-        FilterChip(
-            selected = selectedFilter == ReminderFilter.ACTIVE,
-            onClick = { onFilterChanged(ReminderFilter.ACTIVE) },
-            label = { Text("Active") }
-        )
-        FilterChip(
-            selected = selectedFilter == ReminderFilter.COMPLETED,
-            onClick = { onFilterChanged(ReminderFilter.COMPLETED) },
-            label = { Text("History") }
-        )
-    }
-}
-
-// Update ReminderSectionsList in ReminderListScreen.kt
-@Composable
 private fun ReminderSectionsList(
     state: ReminderListState,
+    onToggleSection: (String) -> Unit,
     onReminderClick: (String) -> Unit,
     onCompleteReminder: (String) -> Unit,
-    onSnoozeReminder: (String, Int) -> Unit
+    onSnoozeReminder: (String, Int) -> Unit,
+    onSubtaskChecked: (String, String, Boolean) -> Unit,
+    onReminderLongClick: (Reminder, Offset, IntSize) -> Unit
 ) {
+    // Local state for Pinned "Show More"
+    var showAllPinned by remember { mutableStateOf(false) }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        // Missed Section
-        if (state.missedReminders.isNotEmpty()) {
-            item(key = "header_missed") {
-                SectionHeader(
-                    title = "Missed",
-                    count = state.missedReminders.size,
-                    color = Color(0xFFDC2626),
-                    icon = Icons.Filled.Warning
+        // Pinned Section
+        if (state.pinnedReminders.isNotEmpty()) {
+            item(key = "header_pinned") {
+                CollapsibleSectionHeader(
+                    title = "Pinned",
+                    count = state.pinnedReminders.size,
+                    isExpanded = state.expandedSections.contains("pinned"),
+                    onToggle = { onToggleSection("pinned") },
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
-            items(
-                items = state.missedReminders,
-                key = { it.id }
-            ) { reminder ->
-                ReminderCard(
-                    reminder = reminder,
-                    onCheckedChange = { onCompleteReminder(reminder.id) },
-                    onClick = { onReminderClick(reminder.id) },
-                    onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
-                )
+            if (state.expandedSections.contains("pinned")) {
+                val visiblePinned = if (showAllPinned) state.pinnedReminders else state.pinnedReminders.take(3)
+                items(
+                    items = visiblePinned,
+                    key = { "pinned_${it.id}" }
+                ) { reminder ->
+                    ReminderCard(
+                        reminder = reminder,
+                        onCheckedChange = { onCompleteReminder(reminder.id) },
+                        onSubtaskChecked = { subtask, isChecked -> onSubtaskChecked(reminder.id, subtask.id, isChecked) },
+                        onClick = { onReminderClick(reminder.id) },
+                        onLongClick = { itemPos, itemSize -> onReminderLongClick(reminder, itemPos, itemSize) },
+                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) },
+                        modifier = Modifier.animateItem()
+                    )
+                }
+                if (!showAllPinned && state.pinnedReminders.size > 3) {
+                    item(key = "pinned_show_more") {
+                        TextButton(
+                            onClick = { showAllPinned = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Show ${state.pinnedReminders.size - 3} more")
+                        }
+                    }
+                }
             }
         }
 
         // Overdue Section
         if (state.overdueReminders.isNotEmpty()) {
             item(key = "header_overdue") {
-                SectionHeader(
+                CollapsibleSectionHeader(
                     title = "Overdue",
                     count = state.overdueReminders.size,
-                    color = Color(0xFFEF4444),
-                    icon = Icons.Filled.Warning
+                    isExpanded = state.expandedSections.contains("overdue"),
+                    onToggle = { onToggleSection("overdue") },
+                    color = MaterialTheme.colorScheme.error
                 )
             }
-            items(
-                items = state.overdueReminders,
-                key = { it.id }
-            ) { reminder ->
-                ReminderCard(
-                    reminder = reminder,
-                    onCheckedChange = { onCompleteReminder(reminder.id) },
-                    onClick = { onReminderClick(reminder.id) },
-                    onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
-                )
+            if (state.expandedSections.contains("overdue")) {
+                items(
+                    items = state.overdueReminders,
+                    key = { it.id }
+                ) { reminder ->
+                    ReminderCard(
+                        reminder = reminder,
+                        onCheckedChange = { onCompleteReminder(reminder.id) },
+                        onSubtaskChecked = { subtask, isChecked -> onSubtaskChecked(reminder.id, subtask.id, isChecked) },
+                        onClick = { onReminderClick(reminder.id) },
+                        onLongClick = { itemPos, itemSize -> onReminderLongClick(reminder, itemPos, itemSize) },
+                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) },
+                        modifier = Modifier.animateItem()
+                    )
+                }
             }
         }
 
         // Snoozed Section
         if (state.snoozedReminders.isNotEmpty()) {
             item(key = "header_snoozed") {
-                SectionHeader(
+                CollapsibleSectionHeader(
                     title = "Snoozed",
                     count = state.snoozedReminders.size,
-                    color = Amber500,
-                    icon = Icons.Filled.Notifications
+                    isExpanded = state.expandedSections.contains("snoozed"),
+                    onToggle = { onToggleSection("snoozed") },
+                    color = MaterialTheme.colorScheme.secondary
                 )
             }
-            items(
-                items = state.snoozedReminders,
-                key = { it.id }
-            ) { reminder ->
-                ReminderCard(
-                    reminder = reminder,
-                    onCheckedChange = { onCompleteReminder(reminder.id) },
-                    onClick = { onReminderClick(reminder.id) },
-                    onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
-                )
+            if (state.expandedSections.contains("snoozed")) {
+                items(
+                    items = state.snoozedReminders,
+                    key = { it.id }
+                ) { reminder ->
+                    ReminderCard(
+                        reminder = reminder,
+                        onCheckedChange = { onCompleteReminder(reminder.id) },
+                        onSubtaskChecked = { subtask, isChecked -> onSubtaskChecked(reminder.id, subtask.id, isChecked) },
+                        onClick = { onReminderClick(reminder.id) },
+                        onLongClick = { itemPos, itemSize -> onReminderLongClick(reminder, itemPos, itemSize) },
+                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) },
+                        modifier = Modifier.animateItem()
+                    )
+                }
             }
         }
 
         // Today Section
         if (state.todayReminders.isNotEmpty()) {
             item(key = "header_today") {
-                SectionHeader(
+                CollapsibleSectionHeader(
                     title = "Today",
                     count = state.todayReminders.size,
-                    color = Indigo500,
-                    icon = Icons.Filled.DateRange
+                    isExpanded = state.expandedSections.contains("today"),
+                    onToggle = { onToggleSection("today") },
+                    color = MaterialTheme.colorScheme.tertiary
                 )
             }
-            items(
-                items = state.todayReminders,
-                key = { it.id }
-            ) { reminder ->
-                ReminderCard(
-                    reminder = reminder,
-                    onCheckedChange = { onCompleteReminder(reminder.id) },
-                    onClick = { onReminderClick(reminder.id) },
-                    onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
-                )
+            if (state.expandedSections.contains("today")) {
+                items(
+                    items = state.todayReminders,
+                    key = { it.id }
+                ) { reminder ->
+                    ReminderCard(
+                        reminder = reminder,
+                        onCheckedChange = { onCompleteReminder(reminder.id) },
+                        onSubtaskChecked = { subtask, isChecked -> onSubtaskChecked(reminder.id, subtask.id, isChecked) },
+                        onClick = { onReminderClick(reminder.id) },
+                        onLongClick = { itemPos, itemSize -> onReminderLongClick(reminder, itemPos, itemSize) },
+                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) },
+                        modifier = Modifier.animateItem()
+                    )
+                }
             }
         }
 
         // Tomorrow Section
         if (state.tomorrowReminders.isNotEmpty()) {
             item(key = "header_tomorrow") {
-                SectionHeader(
+                CollapsibleSectionHeader(
                     title = "Tomorrow",
                     count = state.tomorrowReminders.size,
-                    color = Color(0xFF8B5CF6),
-                    icon = Icons.Filled.DateRange
+                    isExpanded = state.expandedSections.contains("tomorrow"),
+                    onToggle = { onToggleSection("tomorrow") },
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
-            items(
-                items = state.tomorrowReminders,
-                key = { it.id }
-            ) { reminder ->
-                ReminderCard(
-                    reminder = reminder,
-                    onCheckedChange = { onCompleteReminder(reminder.id) },
-                    onClick = { onReminderClick(reminder.id) },
-                    onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
-                )
+            if (state.expandedSections.contains("tomorrow")) {
+                items(
+                    items = state.tomorrowReminders,
+                    key = { it.id }
+                ) { reminder ->
+                    ReminderCard(
+                        reminder = reminder,
+                        onCheckedChange = { onCompleteReminder(reminder.id) },
+                        onSubtaskChecked = { subtask, isChecked -> onSubtaskChecked(reminder.id, subtask.id, isChecked) },
+                        onClick = { onReminderClick(reminder.id) },
+                        onLongClick = { itemPos, itemSize -> onReminderLongClick(reminder, itemPos, itemSize) },
+                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) },
+                        modifier = Modifier.animateItem()
+                    )
+                }
             }
         }
 
-        // Later Section
+        // Upcoming Section (was Later)
         if (state.laterReminders.isNotEmpty()) {
-            item(key = "header_later") {
-                SectionHeader(
-                    title = "Later",
+            item(key = "header_upcoming") {
+                CollapsibleSectionHeader(
+                    title = "Upcoming",
                     count = state.laterReminders.size,
-                    color = Color(0xFF6366F1),
-                    icon = Icons.Filled.DateRange
+                    isExpanded = state.expandedSections.contains("upcoming"),
+                    onToggle = { onToggleSection("upcoming") },
+                    color = MaterialTheme.colorScheme.secondary
                 )
             }
-            items(
-                items = state.laterReminders,
-                key = { it.id }
-            ) { reminder ->
-                ReminderCard(
-                    reminder = reminder,
-                    onCheckedChange = { onCompleteReminder(reminder.id) },
-                    onClick = { onReminderClick(reminder.id) },
-                    onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) }
-                )
+            if (state.expandedSections.contains("upcoming")) {
+                items(
+                    items = state.laterReminders,
+                    key = { it.id }
+                ) { reminder ->
+                    ReminderCard(
+                        reminder = reminder,
+                        onCheckedChange = { onCompleteReminder(reminder.id) },
+                        onSubtaskChecked = { subtask, isChecked -> onSubtaskChecked(reminder.id, subtask.id, isChecked) },
+                        onClick = { onReminderClick(reminder.id) },
+                        onLongClick = { itemPos, itemSize -> onReminderLongClick(reminder, itemPos, itemSize) },
+                        onSnooze = { minutes -> onSnoozeReminder(reminder.id, minutes) },
+                        modifier = Modifier.animateItem()
+                    )
+                }
             }
         }
-    }
-}
-
-
-@Composable
-private fun EmptyState() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = Icons.Filled.CheckCircle,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = Color(0xFF10B981).copy(alpha = 0.3f)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "All caught up!",
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = "No reminders for now",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-        )
     }
 }

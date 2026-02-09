@@ -1,24 +1,24 @@
 package com.bhaskar.synctask.presentation.groups.ui_components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.bhaskar.synctask.presentation.create.ui_components.ColorPickerDialog
+import androidx.compose.ui.window.DialogProperties
 import com.bhaskar.synctask.presentation.create.ui_components.IconPickerDialog
 import com.bhaskar.synctask.presentation.groups.components.GroupsEvent
 import com.bhaskar.synctask.presentation.groups.components.GroupsState
-import com.bhaskar.synctask.presentation.utils.parseHexColor
 
 @Composable
 fun CreateGroupDialog(
@@ -26,7 +26,6 @@ fun CreateGroupDialog(
     onEvent: (GroupsEvent) -> Unit,
     onDismiss: () -> Unit
 ) {
-    // Show icon picker
     if (state.showIconPicker) {
         IconPickerDialog(
             selectedIcon = state.dialogIcon,
@@ -38,187 +37,101 @@ fun CreateGroupDialog(
         )
     }
 
-    // Show color picker
-    if (state.showColorPicker) {
-        ColorPickerDialog(
-            selectedColor = state.dialogColor,
-            onColorSelected = { color ->
-                color?.let { onEvent(GroupsEvent.UpdateDialogColor(it)) }
-                onEvent(GroupsEvent.ToggleColorPicker)
-            },
-            onDismiss = { onEvent(GroupsEvent.ToggleColorPicker) }
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
         )
-    }
-
-    Dialog(onDismissRequest = onDismiss) {
+    ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(16.dp)
                 .wrapContentHeight(),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
             tonalElevation = 6.dp
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
-            ) {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (state.editingGroup != null) "Edit Group" else "Create Group",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, "Close")
-                    }
-                }
-
-                Spacer(Modifier.height(24.dp))
-
-                // Preview Card
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = parseHexColor(state.dialogColor).copy(alpha = 0.2f)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Icon preview
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(parseHexColor(state.dialogColor)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = state.dialogIcon,
-                                style = MaterialTheme.typography.headlineMedium
-                            )
-                        }
-
-                        // Name preview
-                        Text(
-                            text = state.dialogName.ifBlank { "Group Name" },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (state.dialogName.isBlank())
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(20.dp))
-
-                // Name Input
-                OutlinedTextField(
-                    value = state.dialogName,
-                    onValueChange = { onEvent(GroupsEvent.UpdateDialogName(it)) },
-                    label = { Text("Group Name") },
-                    placeholder = { Text("e.g., Work, Personal, Shopping") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    isError = state.error != null
+            Column(modifier = Modifier.padding(16.dp)) {
+                
+                Text(
+                    text = if (state.editingGroup != null) "Edit Group" else "Create Group",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                if (state.error != null) {
-                    Text(
-                        text = state.error,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                    )
-                }
+                // Name Input
+                TextField(
+                    value = state.dialogName,
+                    onValueChange = { onEvent(GroupsEvent.UpdateDialogName(it)) },
+                    placeholder = { Text("Group Name", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)) },
+                    textStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                Spacer(Modifier.height(16.dp))
-
-                // Icon and Color Selectors
+                Divider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 4.dp))
+                
+                Spacer(Modifier.height(12.dp))
+                
+                // Decorations Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Icon Selector
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "Icon",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                        OutlinedButton(
-                            onClick = { onEvent(GroupsEvent.ToggleIconPicker) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = state.dialogIcon,
-                                style = MaterialTheme.typography.headlineMedium
-                            )
-                        }
+                    // Emoji
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                            .clickable { onEvent(GroupsEvent.ToggleIconPicker) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(state.dialogIcon.ifBlank { "📁" }, style = MaterialTheme.typography.titleMedium)
                     }
-
-                    // Color Selector
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "Color",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                        OutlinedButton(
-                            onClick = { onEvent(GroupsEvent.ToggleColorPicker) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .clip(CircleShape)
-                                    .background(parseHexColor(state.dialogColor))
-                            )
-                        }
-                    }
+                    
+                    // Color Picker
+                    com.bhaskar.synctask.presentation.create.ui_components.ColorPickerAnchor(
+                        selectedColorHex = state.dialogColor,
+                        onColorSelected = { onEvent(GroupsEvent.UpdateDialogColor(it)) }
+                    )
                 }
 
                 Spacer(Modifier.height(24.dp))
 
-                // Action Buttons
+                // Actions
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f)
-                    ) {
+                    TextButton(onClick = onDismiss) {
                         Text("Cancel")
                     }
-
+                    Spacer(Modifier.width(8.dp))
                     Button(
                         onClick = { onEvent(GroupsEvent.SaveGroup) },
-                        modifier = Modifier.weight(1f),
                         enabled = state.dialogName.isNotBlank() && !state.isLoading
                     ) {
                         if (state.isLoading) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
                                 color = MaterialTheme.colorScheme.onPrimary
                             )
                         } else {
-                            Text(if (state.editingGroup != null) "Update" else "Create")
+                            Text("Save")
                         }
                     }
                 }

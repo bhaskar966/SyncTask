@@ -14,9 +14,6 @@ sealed class MainRoutes {
     data class CreateReminderScreen(val id: String? = null): MainRoutes()
 
     @Serializable
-    data class ReminderDetailScreen(val id: String): MainRoutes()
-
-    @Serializable
     data object CustomRecurrenceScreen: MainRoutes()
 
     @Serializable

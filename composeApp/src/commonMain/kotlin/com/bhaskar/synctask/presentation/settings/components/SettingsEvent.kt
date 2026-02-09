@@ -7,4 +7,13 @@ sealed class SettingsEvent {
     data class OnBadgeToggled(val enabled: Boolean) : SettingsEvent()
     data object OnLogout : SettingsEvent()
     data object OnRestorePurchases : SettingsEvent()
+    
+    // Tag Management Events
+    data object OnShowTagsDialog : SettingsEvent()
+    data object OnHideTagsDialog : SettingsEvent()
+    data class OnNewTagNameChanged(val name: String) : SettingsEvent()
+    data class OnNewTagColorChanged(val color: String) : SettingsEvent()
+    data object OnCreateTag : SettingsEvent()
+    data class OnDeleteTag(val tagId: String) : SettingsEvent()
+    data object OnDismissPremiumDialog : SettingsEvent()
 }

@@ -15,19 +15,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.bhaskar.synctask.presentation.theme.Indigo500
-
 // Premium gradient colors
-private val PremiumGradientStart = Color(0xFF6366F1) // Indigo
-private val PremiumGradientEnd = Color(0xFF8B5CF6) // Purple
+private val PremiumGradientStart =  Color(0xFFFF6D00) // Orange (Tertiary)
+private val PremiumGradientEnd = Color(0xFFFFD180) // Light Orange
 
 /**
  * A reusable dialog shown when users hit premium feature limits.
  * Used consistently across the app for groups, tags, subtasks, pinned reminders, etc.
  */
+/**
+ * A reusable dialog shown when users hit free tier limits.
+ * Prompts the user to upgrade to Premium.
+ */
 @Composable
 fun PremiumLimitDialog(
     message: String,
+    title: String = "Upgrade to Premium",
+    buttonText: String = "Upgrade Now",
     onDismiss: () -> Unit,
     onUpgrade: () -> Unit
 ) {
@@ -57,7 +61,7 @@ fun PremiumLimitDialog(
         },
         title = {
             Text(
-                "Upgrade to Premium",
+                title,
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
@@ -78,11 +82,11 @@ fun PremiumLimitDialog(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Indigo500
+                    containerColor = MaterialTheme.colorScheme.tertiary
                 )
             ) {
                 Text(
-                    "Upgrade Now",
+                    buttonText,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
@@ -103,6 +107,74 @@ fun PremiumLimitDialog(
 }
 
 /**
+ * A reusable dialog shown when PREMIUM users hit hard limits.
+ * Informational only, with no upgrade action.
+ */
+@Composable
+fun MaxLimitReachedDialog(
+    title: String = "Limit Reached",
+    message: String,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(24.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Star, // Or a different icon like Warning
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                title,
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        text = {
+            Text(
+                message,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text(
+                    "OK",
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
+        }
+    )
+}
+
+/**
  * A compact inline premium prompt for use in forms/sections.
  * Less intrusive than a full dialog.
  */
@@ -116,7 +188,7 @@ fun PremiumFeaturePrompt(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Indigo500.copy(alpha = 0.1f)
+            containerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
         )
     ) {
         Row(
@@ -128,7 +200,7 @@ fun PremiumFeaturePrompt(
             Icon(
                 Icons.Default.Star,
                 contentDescription = null,
-                tint = Indigo500,
+                tint = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.size(20.dp)
             )
             
@@ -146,7 +218,7 @@ fun PremiumFeaturePrompt(
             TextButton(
                 onClick = onUpgrade,
                 colors = ButtonDefaults.textButtonColors(
-                    contentColor = Indigo500
+                    contentColor = MaterialTheme.colorScheme.tertiary
                 )
             ) {
                 Text(

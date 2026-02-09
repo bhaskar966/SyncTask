@@ -42,7 +42,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.bhaskar.synctask.presentation.theme.Indigo500
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -225,7 +224,7 @@ fun CustomRecurrenceSection(
                     onCheckedChange = {
                         onEvent(CreateReminderEvent.OnRecurrenceFromCompletionToggled(it))
                     },
-                    colors = CheckboxDefaults.colors(checkedColor = Indigo500)
+                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
                 )
                 Column(modifier = Modifier.padding(start = 8.dp)) {
                     Text(
@@ -268,7 +267,7 @@ fun CustomRecurrenceSection(
                     onClick = {
                         onEvent(CreateReminderEvent.OnRecurrenceEndModeChanged(RecurrenceEndMode.NEVER))
                     },
-                    colors = RadioButtonDefaults.colors(selectedColor = Indigo500)
+                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
                 )
                 Text("Never", style = MaterialTheme.typography.bodyLarge)
             }
@@ -288,7 +287,7 @@ fun CustomRecurrenceSection(
                     onClick = {
                         onEvent(CreateReminderEvent.OnRecurrenceEndModeChanged(RecurrenceEndMode.DATE))
                     },
-                    colors = RadioButtonDefaults.colors(selectedColor = Indigo500)
+                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
                 )
                 Text("On date", style = MaterialTheme.typography.bodyLarge)
                 Spacer(modifier = Modifier.width(16.dp))
@@ -328,7 +327,7 @@ fun CustomRecurrenceSection(
                     onClick = {
                         onEvent(CreateReminderEvent.OnRecurrenceEndModeChanged(RecurrenceEndMode.COUNT))
                     },
-                    colors = RadioButtonDefaults.colors(selectedColor = Indigo500)
+                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
                 )
                 Text("After", style = MaterialTheme.typography.bodyLarge)
                 Spacer(modifier = Modifier.width(16.dp))
@@ -387,10 +386,10 @@ fun DayButton(
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(if (isSelected) Indigo500 else Color.Transparent)
+            .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
             .border(
                 1.dp,
-                if (isSelected) Indigo500 else MaterialTheme.colorScheme.outlineVariant,
+                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                 CircleShape
             )
             .clickable(onClick = onClick),
@@ -398,7 +397,7 @@ fun DayButton(
     ) {
         Text(
             text = label,
-            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Bold
         )
     }
