@@ -110,6 +110,9 @@ val dataModule = module {
 
     // Profile Repository
     single<ProfileRepository> { ProfileRepositoryImpl() }
+    
+    // Theme Repository
+    single<com.bhaskar.synctask.domain.repository.ThemeRepository> { com.bhaskar.synctask.data.repository.ThemeRepositoryImpl(get()) }
 }
 
 val domainModule = module {

@@ -2,6 +2,8 @@ package com.bhaskar.synctask.presentation.settings.components
 
 import androidx.compose.ui.graphics.ImageBitmap
 import com.bhaskar.synctask.domain.model.ActiveSubscriptionInfo
+import com.bhaskar.synctask.domain.model.Tag
+import com.bhaskar.synctask.domain.model.ThemeMode
 
 data class SettingsState(
     val userName: String = "",
@@ -21,7 +23,7 @@ data class SettingsState(
     
     // Tags Management
     val showTagsDialog: Boolean = false,
-    val tags: List<com.bhaskar.synctask.domain.model.Tag> = emptyList(),
+    val tags: List<Tag> = emptyList(),
     val newTagName: String = "",
     val newTagColor: String = "#6366F1", // Default Indigo
     val tagsDialogError: String? = null,

@@ -23,20 +23,36 @@ import com.bhaskar.synctask.presentation.list.ReminderListViewModel
 import com.bhaskar.synctask.presentation.settings.SettingsScreen
 import com.bhaskar.synctask.presentation.settings.SettingsViewModel
 import com.bhaskar.synctask.presentation.utils.MainRoutes
+import com.bhaskar.synctask.presentation.theme.SystemAppearance
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.compose.koinInject
+import com.bhaskar.synctask.domain.repository.ThemeRepository
+import com.bhaskar.synctask.domain.model.ThemeMode
+import androidx.compose.foundation.isSystemInDarkTheme
+
 
 @Composable
 fun App() {
     val authManager: AuthManager = koinInject()
     val authState by authManager.authState.collectAsState()
     val notificationScheduler: NotificationScheduler = koinInject()
+    
+    val themeRepository: ThemeRepository = koinInject()
+    val themeMode by themeRepository.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
+    
+    val isDarkTheme = when(themeMode) {
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
+    
+    SystemAppearance(isDark = isDarkTheme)
 
     LaunchedEffect(Unit) {
         notificationScheduler.scheduleNext()
     }
 
-    SyncTaskTheme {
+    SyncTaskTheme(darkTheme = isDarkTheme) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
@@ -68,12 +84,6 @@ fun App() {
 @Composable
 private fun MainAppContent(notificationScheduler: NotificationScheduler) {
     val navController = rememberNavController()
-
-    // ViewModels initialized once at top level
-    val createReminderViewModel: CreateReminderViewModel = koinViewModel()
-    val createReminderState by createReminderViewModel.state.collectAsState()
-    val groups by createReminderViewModel.groups.collectAsState()
-    val tags by createReminderViewModel.tags.collectAsState()
 
     NavHost(
         navController = navController,

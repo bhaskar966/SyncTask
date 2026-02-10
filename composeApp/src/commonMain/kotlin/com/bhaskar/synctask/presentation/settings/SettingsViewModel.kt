@@ -6,6 +6,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bhaskar.synctask.data.auth.AuthManager
 import com.bhaskar.synctask.domain.model.Tag
+import com.bhaskar.synctask.domain.repository.GroupRepository
+import com.bhaskar.synctask.domain.repository.ProfileRepository
+import com.bhaskar.synctask.domain.repository.ReminderRepository
+import com.bhaskar.synctask.domain.repository.SubscriptionRepository
+import com.bhaskar.synctask.domain.repository.TagRepository
+import com.bhaskar.synctask.domain.repository.ThemeRepository
 import com.bhaskar.synctask.domain.subscription.SubscriptionConfig
 import com.bhaskar.synctask.presentation.settings.components.SettingsEvent
 import com.bhaskar.synctask.presentation.settings.components.SettingsState
@@ -21,11 +27,12 @@ import kotlin.uuid.Uuid
 
 class SettingsViewModel(
     private val authManager: AuthManager,
-    private val reminderRepository: com.bhaskar.synctask.domain.repository.ReminderRepository,
-    private val groupRepository: com.bhaskar.synctask.domain.repository.GroupRepository,
-    private val tagRepository: com.bhaskar.synctask.domain.repository.TagRepository,
-    private val subscriptionRepository: com.bhaskar.synctask.domain.repository.SubscriptionRepository,
-    private val profileRepository: com.bhaskar.synctask.domain.repository.ProfileRepository
+    private val reminderRepository: ReminderRepository,
+    private val groupRepository: GroupRepository,
+    private val tagRepository: TagRepository,
+    private val subscriptionRepository: SubscriptionRepository,
+    private val profileRepository: ProfileRepository,
+    private val themeRepository: ThemeRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsState())
@@ -34,6 +41,7 @@ class SettingsViewModel(
     init {
         observeAuthState()
         observeSubscription()
+        observeTheme()
     }
 
     private fun observeAuthState() {
@@ -94,6 +102,14 @@ class SettingsViewModel(
         }
     }
 
+    private fun observeTheme() {
+        viewModelScope.launch {
+            themeRepository.themeMode.collect { mode ->
+                _state.update { it.copy(themeMode = mode) }
+            }
+        }
+    }
+
     fun updatePushPermissionState(isGranted: Boolean) {
         _state.update { it.copy(isPushEnabled = isGranted) }
     }
@@ -101,7 +117,9 @@ class SettingsViewModel(
     fun onEvent(event: SettingsEvent) {
         when (event) {
             is SettingsEvent.OnThemeChanged -> {
-                _state.update { it.copy(themeMode = event.mode) }
+                viewModelScope.launch {
+                    themeRepository.setThemeMode(event.mode)
+                }
             }
             is SettingsEvent.OnPushToggled -> {
                 // UI handles the actual permission request/toggle logic

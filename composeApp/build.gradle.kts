@@ -126,6 +126,10 @@ kotlin {
             implementation(libs.purchases.either)
             implementation(libs.purchases.result)
             implementation(libs.purchases.ui)
+
+            // DataStore
+            implementation(libs.androidx.datastore)
+            implementation(libs.androidx.datastore.preferences)
         }
 
         commonTest.dependencies {

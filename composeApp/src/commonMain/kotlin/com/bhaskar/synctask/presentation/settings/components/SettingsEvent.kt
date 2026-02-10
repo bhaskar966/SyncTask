@@ -1,5 +1,7 @@
 package com.bhaskar.synctask.presentation.settings.components
 
+import com.bhaskar.synctask.domain.model.ThemeMode
+
 sealed class SettingsEvent {
     data class OnThemeChanged(val mode: ThemeMode) : SettingsEvent()
     data class OnPushToggled(val enabled: Boolean) : SettingsEvent()

@@ -2,6 +2,7 @@ package com.bhaskar.synctask.di
 
 import androidx.room.RoomDatabase
 import com.bhaskar.synctask.data.auth.GoogleAuthenticator
+import com.bhaskar.synctask.data.local.createDataStore
 import com.bhaskar.synctask.data.platform.PlatformFCMManager
 import com.bhaskar.synctask.data.platform.PlatformFirestoreDataSource
 import com.bhaskar.synctask.data.platform.PlatformNotificationScheduler
@@ -21,4 +22,7 @@ actual val platformModule: Module = module {
     single { PlatformFirestoreDataSource() } bind FirestoreDataSource::class
     single { GoogleAuthenticator() }
     single { PlatformFCMManager() } bind FCMManager::class
+    
+    // DataStore
+    single { createDataStore() }
 }

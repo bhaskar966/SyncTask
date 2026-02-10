@@ -65,7 +65,7 @@ import dev.icerock.moko.permissions.notifications.REMOTE_NOTIFICATION
 import com.bhaskar.synctask.platform.openUrl
 import com.bhaskar.synctask.presentation.settings.components.SettingsEvent
 import com.bhaskar.synctask.presentation.settings.components.SettingsState
-import com.bhaskar.synctask.presentation.settings.components.ThemeMode
+import com.bhaskar.synctask.domain.model.ThemeMode
 import com.bhaskar.synctask.presentation.create.ui_components.SingleSelectionDialog
 import com.bhaskar.synctask.presentation.create.ui_components.CompactSelectableRow
 import androidx.compose.material.icons.filled.Palette
