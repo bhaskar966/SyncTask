@@ -63,7 +63,7 @@ class NotificationCalculator(
                 && reminder.recurrence != null) {
 
                 println("   📅 DEADLINE REMINDER")
-                val deadlineNotification = getDeadlineNotification(reminder, now)  // ✅ CHANGED
+                val deadlineNotification = getDeadlineNotification(reminder, now) 
                 if (deadlineNotification != null) {
                     val notifTime = Instant.fromEpochMilliseconds(deadlineNotification.triggerTime)
                     println("   ✅ Next occurrence at $notifTime")
@@ -107,6 +107,22 @@ class NotificationCalculator(
             println("🔵 NEXT NOTIFICATION: ${result.title}")
             println("   Trigger at: ${Instant.fromEpochMilliseconds(result.triggerTime)}")
             println("   isPreReminder: ${result.isPreReminder}")
+
+            // 🆕 Format message for pre-reminders
+            if (result.isPreReminder) {
+                val timeZone = TimeZone.currentSystemDefault()
+                val triggerDateTime = Instant.fromEpochMilliseconds(result.triggerTime).toLocalDateTime(timeZone)
+                val hour = triggerDateTime.hour
+                val minute = triggerDateTime.minute
+                val amPm = if (hour < 12) "AM" else "PM"
+                val hour12 = if (hour == 0 || hour == 12) 12 else hour % 12
+                val timeString = "${hour12}:${minute.toString().padStart(2, '0')} $amPm"
+
+                val formattedTitle = "⏰ Upcoming: ${result.title}"
+                val formattedBody = "${result.title} is set for $timeString"
+
+                return result.copy(title = formattedTitle, body = formattedBody)
+            }
         } else {
             println("🔵 NO upcoming notifications")
         }
@@ -139,7 +155,7 @@ class NotificationCalculator(
             return null
         }
 
-        // ✅ Check if TODAY is a recurrence day (or future day within interval)
+        // Check if TODAY is a recurrence day (or future day within interval)
         val isRecurrenceDay = when (val rule = reminder.recurrence) {
             is RecurrenceRule.Daily -> {
                 // For daily: check if today is N days after start
@@ -260,31 +276,49 @@ class NotificationCalculator(
             return null // Not a recurrence day
         }
 
-        // ✅ Build notification time for today
+        // Build notification time for today
         val notificationDateTime = today.atTime(dueTime)
         val notificationTime = notificationDateTime.toInstant(timeZone).toEpochMilliseconds()
 
         println("      📅 Notification would be at: $notificationDateTime")
         println("      ⏰ notificationTime=$notificationTime, now=$now")
 
-        // Check if already passed today
-        if (notificationTime <= now) {
-            println("      ❌ Already passed today")
-            return null // Already fired today or just passed
+        // Calculate Pre-Reminder Time for Today (Dynamic)
+        var triggerTime = notificationTime
+        var isPreReminder = false
+
+        if (reminder.reminderTime != null && reminder.reminderTime < reminder.dueTime) {
+            val offset = reminder.dueTime - reminder.reminderTime
+            val preReminderTime = notificationTime - offset
+
+            // Check if pre-reminder is valid (in future and before deadline)
+            if (preReminderTime > now) {
+                println("      🔔 Found valid PRE-REMINDER for today at ${Instant.fromEpochMilliseconds(preReminderTime)}")
+                triggerTime = preReminderTime
+                isPreReminder = true
+            } else {
+                println("      ⚠️ Pre-reminder for today already passed")
+            }
+        }
+
+        // Check if final trigger time (either pre or due) passed
+        if (triggerTime <= now) {
+            println("      ❌ Trigger time already passed today")
+            return null 
         }
 
         // Check if before deadline
-        if (reminder.deadline != null && notificationTime > reminder.deadline) {
+        if (reminder.deadline != null && triggerTime > reminder.deadline) {
             println("      ❌ After deadline")
             return null
         }
 
-        println("      ✅ Scheduling for today!")
+        println("      ✅ Scheduling for today! (isPre=$isPreReminder)")
 
         return NextNotification(
             reminderId = reminder.id,
-            triggerTime = notificationTime,
-            isPreReminder = false,
+            triggerTime = triggerTime,
+            isPreReminder = isPreReminder,
             title = reminder.title,
             body = reminder.description ?: ""
         )
