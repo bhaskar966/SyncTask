@@ -1,3 +1,5 @@
+package com.bhaskar.synctask.presentation.navigation
+
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.padding
@@ -9,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -16,6 +19,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.bhaskar.synctask.presentation.create.CreateReminderDialog
+import com.bhaskar.synctask.presentation.create.CreateReminderViewModel
 import com.bhaskar.synctask.presentation.groups.GroupsScreen
 import com.bhaskar.synctask.presentation.groups.GroupsViewModel
 import com.bhaskar.synctask.presentation.groups.components.GroupsEvent
@@ -34,7 +38,7 @@ fun BottomNavHost(
     reminderListViewModel: ReminderListViewModel = koinViewModel(),
     groupsViewModel: GroupsViewModel = koinViewModel(),
     historyViewModel: HistoryViewModel = koinViewModel(),
-    createReminderViewModel: com.bhaskar.synctask.presentation.create.CreateReminderViewModel = koinViewModel()
+    createReminderViewModel: CreateReminderViewModel = koinViewModel()
 ) {
     val bottomNavController = rememberNavController()
     val reminderListState by reminderListViewModel.state.collectAsState()
@@ -57,13 +61,13 @@ fun BottomNavHost(
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     
-    val isReminders = currentDestination?.hierarchy?.any { it.route == BottomNavRoutes.RemindersScreen::class.qualifiedName } == true
-    val isGroups = currentDestination?.hierarchy?.any { it.route == BottomNavRoutes.GroupsScreen::class.qualifiedName } == true
+    val isReminders = currentDestination?.hierarchy?.any { it.hasRoute<BottomNavRoutes.RemindersScreen>() } == true
+    val isGroups = currentDestination?.hierarchy?.any { it.hasRoute<BottomNavRoutes.GroupsScreen>() } == true
     
     val routeOrder = listOf(
-        BottomNavRoutes.RemindersScreen::class.qualifiedName,
-        BottomNavRoutes.GroupsScreen::class.qualifiedName,
-        BottomNavRoutes.HistoryScreen::class.qualifiedName
+        BottomNavRoutes.RemindersScreen,
+        BottomNavRoutes.GroupsScreen,
+        BottomNavRoutes.HistoryScreen
     )
 
     Scaffold(
@@ -86,8 +90,8 @@ fun BottomNavHost(
             startDestination = BottomNavRoutes.RemindersScreen,
             modifier = Modifier.padding(paddingValues),
             enterTransition = {
-                val initialIndex = routeOrder.indexOf(initialState.destination.route)
-                val targetIndex = routeOrder.indexOf(targetState.destination.route)
+                val initialIndex = routeOrder.indexOfFirst { initialState.destination.hasRoute(it::class) }
+                val targetIndex = routeOrder.indexOfFirst { targetState.destination.hasRoute(it::class) }
                 if (initialIndex < targetIndex) {
                     slideInHorizontally(initialOffsetX = { it })
                 } else {
@@ -95,8 +99,8 @@ fun BottomNavHost(
                 }
             },
             exitTransition = {
-                val initialIndex = routeOrder.indexOf(initialState.destination.route)
-                val targetIndex = routeOrder.indexOf(targetState.destination.route)
+                val initialIndex = routeOrder.indexOfFirst { initialState.destination.hasRoute(it::class) }
+                val targetIndex = routeOrder.indexOfFirst { targetState.destination.hasRoute(it::class) }
                 if (initialIndex < targetIndex) {
                     slideOutHorizontally(targetOffsetX = { -it })
                 } else {
@@ -104,8 +108,8 @@ fun BottomNavHost(
                 }
             },
             popEnterTransition = {
-                val initialIndex = routeOrder.indexOf(initialState.destination.route)
-                val targetIndex = routeOrder.indexOf(targetState.destination.route)
+                val initialIndex = routeOrder.indexOfFirst { initialState.destination.hasRoute(it::class) }
+                val targetIndex = routeOrder.indexOfFirst { targetState.destination.hasRoute(it::class) }
                 if (initialIndex < targetIndex) {
                     slideInHorizontally(initialOffsetX = { it })
                 } else {
@@ -113,8 +117,8 @@ fun BottomNavHost(
                 }
             },
             popExitTransition = {
-                val initialIndex = routeOrder.indexOf(initialState.destination.route)
-                val targetIndex = routeOrder.indexOf(targetState.destination.route)
+                val initialIndex = routeOrder.indexOfFirst { initialState.destination.hasRoute(it::class) }
+                val targetIndex = routeOrder.indexOfFirst { targetState.destination.hasRoute(it::class) }
                 if (initialIndex < targetIndex) {
                     slideOutHorizontally(targetOffsetX = { -it })
                 } else {

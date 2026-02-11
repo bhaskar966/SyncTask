@@ -1,6 +1,6 @@
 package com.bhaskar.synctask
 
-import BottomNavHost
+import com.bhaskar.synctask.presentation.navigation.BottomNavHost
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 import kotlinx.coroutines.launch
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -24,11 +23,8 @@ import com.bhaskar.synctask.data.auth.AuthManager
 import com.bhaskar.synctask.data.auth.AuthState
 import com.bhaskar.synctask.platform.NotificationScheduler
 import com.bhaskar.synctask.presentation.auth.LoginScreen
-import com.bhaskar.synctask.presentation.list.ReminderListScreen
 import com.bhaskar.synctask.presentation.paywall.PaywallWrapper
 import com.bhaskar.synctask.presentation.theme.SyncTaskTheme
-import com.bhaskar.synctask.presentation.create.CreateReminderViewModel
-import com.bhaskar.synctask.presentation.list.ReminderListViewModel
 import com.bhaskar.synctask.presentation.settings.SettingsScreen
 import com.bhaskar.synctask.presentation.settings.SettingsViewModel
 import com.bhaskar.synctask.presentation.utils.MainRoutes

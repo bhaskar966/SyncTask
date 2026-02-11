@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.bhaskar.synctask.presentation.utils.BottomNavRoutes
@@ -107,7 +108,7 @@ fun BottomNavigationBar(
     )
 
     val selectedIndex = bottomNavItems.indexOfFirst { item ->
-         currentDestination?.hierarchy?.any { it.route == item.route::class.qualifiedName } == true
+         currentDestination?.hierarchy?.any { it.hasRoute(item.route::class) } == true
     }.let { if (it == -1) 0 else it }
 
     // Container for the floating bar
