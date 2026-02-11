@@ -149,7 +149,7 @@ class ReminderReceiver : BroadcastReceiver(), KoinComponent {
         title: String
     ): PendingIntent {
         val intent = Intent(context, SnoozeDialogActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra(EXTRA_REMINDER_ID, reminderId)
             putExtra(EXTRA_TITLE, title)
         }
@@ -162,14 +162,14 @@ class ReminderReceiver : BroadcastReceiver(), KoinComponent {
         )
     }
 
-    // ✅ Direct PendingIntent to RescheduleDialogActivity (no trampoline)
+    // Direct PendingIntent to RescheduleDialogActivity (no trampoline)
     private fun createRescheduleActivityPendingIntent(
         context: Context,
         reminderId: String,
         title: String
     ): PendingIntent {
         val intent = Intent(context, RescheduleDialogActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra(EXTRA_REMINDER_ID, reminderId)
             putExtra(EXTRA_TITLE, title)
         }

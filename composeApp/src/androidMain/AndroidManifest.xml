@@ -54,11 +54,13 @@
         <activity android:name=".notificationDialogsActivities.SnoozeDialogActivity"
             android:theme="@style/Theme.Transparent"
             android:excludeFromRecents="true"
+            android:launchMode="singleTop"
             android:exported="true"/>
 
         <activity android:name=".notificationDialogsActivities.RescheduleDialogActivity"
             android:theme="@style/Theme.Transparent"
             android:excludeFromRecents="true"
+            android:launchMode="singleTop"
             android:exported="true"/>
 
 

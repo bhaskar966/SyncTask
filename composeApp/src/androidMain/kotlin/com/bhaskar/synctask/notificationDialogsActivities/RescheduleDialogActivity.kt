@@ -138,7 +138,7 @@ class RescheduleDialogActivity : ComponentActivity() {
                                         "📅 Rescheduled",
                                         Toast.LENGTH_SHORT
                                     ).show()
-                                    // ✅ Clear notification
+                                    //  Clear notification
                                     cancelNotification(reminderId)
                                     finish()
                                 }
@@ -224,7 +224,7 @@ fun RescheduleDialog(
     var showCustomReminderTimePicker by remember { mutableStateOf(false) }
 
 
-    // ✅ Dialog Overlay
+    // Dialog Overlay
     Box(
         modifier = Modifier
             .fillMaxSize()
