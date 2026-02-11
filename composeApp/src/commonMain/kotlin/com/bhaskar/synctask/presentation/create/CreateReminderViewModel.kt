@@ -77,7 +77,8 @@ class CreateReminderViewModel(
         editingReminderId = null
         _state.value = CreateReminderState(
             selectedDate = datetime.date,
-            selectedTime = datetime.time
+            selectedTime = datetime.time,
+            isPremium = subscriptionRepository.isPremiumSubscribed.value
         )
     }
 
