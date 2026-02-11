@@ -21,6 +21,19 @@ sealed class MainRoutes {
     
     @Serializable
     data object PaywallScreen: MainRoutes()
+
+    // Onboarding Flow
+    @Serializable
+    data object WelcomeScreen: MainRoutes()
+
+    @Serializable
+    data object OnboardingScreen: MainRoutes()
+
+    @Serializable
+    data object NotificationPermissionScreen: MainRoutes()
+
+    @Serializable
+    data object LoginScreen: MainRoutes()
 }
 
 // Bottom navigation routes (tabs)

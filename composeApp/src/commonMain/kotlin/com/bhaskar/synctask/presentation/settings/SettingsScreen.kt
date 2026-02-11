@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.ArrowRight
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
@@ -71,6 +72,8 @@ import com.bhaskar.synctask.presentation.create.ui_components.CompactSelectableR
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.runtime.mutableStateOf
+import com.bhaskar.synctask.presentation.components.MaxLimitReachedDialog
+import com.bhaskar.synctask.presentation.components.PremiumLimitDialog
 import com.bhaskar.synctask.presentation.settings.components.ManageTagsDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -139,12 +142,12 @@ fun SettingsScreen(
 
     if (state.showPremiumDialog) {
         if (state.isMaxLimitReached) {
-            com.bhaskar.synctask.presentation.components.MaxLimitReachedDialog(
+            MaxLimitReachedDialog(
                 message = state.premiumDialogMessage,
                 onDismiss = { onEvent(SettingsEvent.OnDismissPremiumDialog) }
             )
         } else {
-            com.bhaskar.synctask.presentation.components.PremiumLimitDialog(
+            PremiumLimitDialog(
                 message = state.premiumDialogMessage,
                 onDismiss = { onEvent(SettingsEvent.OnDismissPremiumDialog) },
                 onUpgrade = {
@@ -223,8 +226,50 @@ fun SettingsScreen(
                 onClick = { showThemeDialog = true },
                 icon = Icons.Default.Palette,
                 modifier = Modifier
-                    .padding(horizontal = 10.dp)
+                    .padding(horizontal = 16.dp)
             )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 24-Hour Format
+            Text(
+                text = "FORMAT",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.Gray,
+                modifier = Modifier
+                    .padding(
+                        start = 8.dp,
+                        bottom = 8.dp
+                    )
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                 Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Filled.DateRange, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Text("24-Hour Time", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                Switch(
+                    checked = state.is24HourFormat,
+                    onCheckedChange = { onEvent(SettingsEvent.On24HourFormatToggled(it)) },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary
+                    )
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 

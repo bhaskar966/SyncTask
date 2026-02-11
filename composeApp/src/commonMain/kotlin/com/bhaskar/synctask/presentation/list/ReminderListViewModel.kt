@@ -31,22 +31,29 @@ import kotlinx.datetime.toInstant
 
 import com.bhaskar.synctask.domain.repository.SubscriptionRepository
 import com.bhaskar.synctask.domain.subscription.SubscriptionConfig
+import com.bhaskar.synctask.domain.repository.ThemeRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.asStateFlow
 
 class ReminderListViewModel(
     private val reminderRepository: ReminderRepository,
-    private val subscriptionRepository: SubscriptionRepository
+    private val subscriptionRepository: SubscriptionRepository,
+    private val themeRepository: ThemeRepository
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(ReminderListState())
-    val state: StateFlow<ReminderListState> = _state
-        .combine(reminderRepository.getReminders()) { state, reminders ->
-            processReminders(state, reminders)
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = ReminderListState(isLoading = true)
-        )
+    private val _state = MutableStateFlow(ReminderListState(isLoading = true))
+    
+    val state: StateFlow<ReminderListState> = combine(
+        _state,
+        reminderRepository.getReminders(),
+        themeRepository.is24HourFormat
+    ) { currentState, reminders, is24Hour ->
+        processReminders(currentState.copy(is24HourFormat = is24Hour), reminders)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ReminderListState(isLoading = true)
+    )
 
     init {
         viewModelScope.launch(Dispatchers.IO) {

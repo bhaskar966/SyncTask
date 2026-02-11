@@ -30,10 +30,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.bhaskar.synctask.data.auth.AuthState
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
+import synctask.composeapp.generated.resources.Res
+import synctask.composeapp.generated.resources.app_logo
 
 @Composable
 fun LoginScreen(
@@ -52,39 +57,60 @@ fun LoginScreen(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize()
+            .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier
-                .padding(24.dp)
-                .widthIn(max = 400.dp)
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxSize()
         ) {
             // App branding
+            // Placeholder for App Icon if available, or just use Text
+            Icon(
+                painter = painterResource(Res.drawable.app_logo), // Replace with App Icon if available
+                contentDescription = null,
+                modifier = Modifier.size(164.dp),
+                tint = Color.Unspecified
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
                 text = "SyncTask",
                 style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
 
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text(
-                text = "Powerful reminders with cross-device sync",
+                text = "Powerful reminders. Perfectly synced.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
+        }
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            if (isLoading) {
+        // Bottom Section
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+             if (isLoading) {
                 CircularProgressIndicator()
             } else {
                 // Google Sign-In Button
                 Button(
                     onClick = { viewModel.signInWithGoogle() },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
                     )
@@ -98,27 +124,11 @@ fun LoginScreen(
                     Text("Sign in with Google")
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Anonymous fallback
-                OutlinedButton(
-                    onClick = { viewModel.signInAnonymously() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Continue Anonymously")
-                }
-
-                Text(
-                    text = "Sign in to sync reminders across all your devices",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
             }
 
             // Error message
             errorMessage?.let { error ->
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer

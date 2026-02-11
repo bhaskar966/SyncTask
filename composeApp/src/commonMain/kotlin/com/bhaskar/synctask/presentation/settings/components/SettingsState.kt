@@ -12,6 +12,7 @@ data class SettingsState(
     val userProfileImage: ImageBitmap? = null,
     val isLoadingImage: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val is24HourFormat: Boolean = false,
     val isPushEnabled: Boolean = false,
     val isEmailEnabled: Boolean = false,
     val isBadgeEnabled: Boolean = true,

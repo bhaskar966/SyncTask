@@ -16,9 +16,9 @@ import com.bhaskar.synctask.domain.repository.SubscriptionRepository
 import com.bhaskar.synctask.domain.subscription.SubscriptionConfig
 import com.bhaskar.synctask.presentation.create.components.*
 import com.bhaskar.synctask.presentation.create.utils.ReminderUtils
-import com.bhaskar.synctask.presentation.list.ui_components.formatRecurrence
 import com.bhaskar.synctask.presentation.utils.atStartOfDay
 import com.bhaskar.synctask.presentation.utils.toLocalDateTime
+import com.bhaskar.synctask.presentation.utils.formatRecurrence
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.IO
@@ -35,7 +35,7 @@ class CreateReminderViewModel(
     private val reminderRepository: ReminderRepository,
     private val groupRepository: GroupRepository,
     private val tagRepository: TagRepository,
-    private val subscriptionRepository: SubscriptionRepository, // ✅ Inject
+    private val subscriptionRepository: SubscriptionRepository,
     private val authManager: AuthManager
 ) : ViewModel() {
 
@@ -44,7 +44,7 @@ class CreateReminderViewModel(
 
     private var editingReminderId: String? = null
 
-    // ✅ Expose groups from repository
+    // Expose groups from repository
     val groups: StateFlow<List<ReminderGroup>> = authManager.authState
         .flatMapLatest { state ->
             val userId = if (state is AuthState.Authenticated) state.uid else "anonymous"
@@ -52,7 +52,7 @@ class CreateReminderViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // ✅ Expose tags from repository
+    // Expose tags from repository
     val tags: StateFlow<List<Tag>> = authManager.authState
         .flatMapLatest { state ->
             val userId = if (state is AuthState.Authenticated) state.uid else "anonymous"
@@ -62,6 +62,12 @@ class CreateReminderViewModel(
 
     init {
         resetState()
+        
+        viewModelScope.launch {
+            subscriptionRepository.isPremiumSubscribed.collect { isPremium ->
+                _state.update { it.copy(isPremium = isPremium) }
+            }
+        }
     }
 
     fun resetState() {
@@ -125,32 +131,32 @@ class CreateReminderViewModel(
                 }
             }
 
-// In OnTimeSelected
+            // In OnTimeSelected
             is CreateReminderEvent.OnTimeSelected -> {
                 _state.update { it.copy(selectedTime = event.time, showTimePicker = false, dueDateTimeError = null) }
             }
 
-// In OnDeadlineDateSelected
+            // In OnDeadlineDateSelected
             is CreateReminderEvent.OnDeadlineDateSelected -> {
                 _state.update { it.copy(deadlineDate = event.date, showDeadlineDatePicker = false, deadlineError = null) }
             }
 
-// In OnDeadlineTimeSelected
+            // In OnDeadlineTimeSelected
             is CreateReminderEvent.OnDeadlineTimeSelected -> {
                 _state.update { it.copy(deadlineTime = event.time, showDeadlineTimePicker = false, deadlineError = null) }
             }
 
-// In OnReminderTimeModeChanged
+            // In OnReminderTimeModeChanged
             is CreateReminderEvent.OnReminderTimeModeChanged -> {
                 _state.update { it.copy(reminderTimeMode = event.mode, reminderTimeError = null) }
             }
 
-// In OnBeforeDueOffsetChanged
+            // In OnBeforeDueOffsetChanged
             is CreateReminderEvent.OnBeforeDueOffsetChanged -> {
                 _state.update { it.copy(beforeDueOffset = event.offsetMs, reminderTimeError = null) }
             }
 
-// In OnCustomReminderDateSelected
+            // In OnCustomReminderDateSelected
             is CreateReminderEvent.OnCustomReminderDateSelected -> {
                 _state.update {
                     it.copy(
@@ -176,7 +182,7 @@ class CreateReminderViewModel(
                 _state.update { it.copy(description = event.description) }
             }
 
-            // ✅ Visual & Organization
+            // Visual & Organization
             is CreateReminderEvent.OnIconSelected -> {
                 _state.update { it.copy(icon = event.icon) }
             }
@@ -209,7 +215,7 @@ class CreateReminderViewModel(
                 }
             }
 
-            // ✅ Group autocomplete
+            // Group autocomplete
             is CreateReminderEvent.OnGroupSearchQueryChanged -> {
                 _state.update { it.copy(groupSearchQuery = event.query) }
             }
@@ -224,6 +230,8 @@ class CreateReminderViewModel(
             }
 
             is CreateReminderEvent.OnCreateGroup -> {
+                if (!checkGroupLimit()) return
+
                 val groupName = event.name.trim()
                 if (groupName.isBlank()) return
 
@@ -261,7 +269,7 @@ class CreateReminderViewModel(
                 }
             }
 
-            // ✅ Tag autocomplete
+            // Tag autocomplete
             is CreateReminderEvent.OnTagSearchQueryChanged -> {
                 _state.update { it.copy(tagSearchQuery = event.query) }
             }
@@ -319,7 +327,7 @@ class CreateReminderViewModel(
                 }
             }
 
-            // ✅ Subtasks
+            // Subtasks
             is CreateReminderEvent.OnSubtaskInputChanged -> {
                 _state.update { it.copy(subtaskInput = event.input) }
             }
@@ -531,8 +539,18 @@ class CreateReminderViewModel(
             }
             
             CreateReminderEvent.OnNavigateToSubscription -> {
-                _state.update { it.copy(showPremiumDialog = false, premiumDialogMessage = "", isMaxLimitReached = false) }
-                // Navigation handled in composable via SharedFlow or callback
+                _state.update { 
+                    it.copy(
+                        showPremiumDialog = false, 
+                        premiumDialogMessage = "", 
+                        isMaxLimitReached = false,
+                        navigateToSubscription = true
+                    ) 
+                }
+            }
+            
+            CreateReminderEvent.OnConsumeNavigateToSubscription -> {
+                _state.update { it.copy(navigateToSubscription = false) }
             }
         }
     }
@@ -554,23 +572,17 @@ class CreateReminderViewModel(
         val isPremium = subscriptionRepository.isPremiumSubscribed.value
         return SubscriptionConfig.canAddTag(currentCount, isPremium)
     }
+
+    fun canAddGroup(): Boolean {
+        val currentCount = groups.value.size
+        val isPremium = subscriptionRepository.isPremiumSubscribed.value
+        return SubscriptionConfig.canAddGroup(currentCount, isPremium)
+    }
     
     fun canAddSubtask(): Boolean {
         val currentCount = _state.value.subtasks.size
         val isPremium = subscriptionRepository.isPremiumSubscribed.value
         return SubscriptionConfig.canAddSubtask(currentCount, isPremium)
-    }
-    
-    fun canPinReminder(): Boolean {
-        val isPremium = subscriptionRepository.isPremiumSubscribed.value
-        return SubscriptionConfig.canPinReminder(0, isPremium) || !_state.value.isPinned
-        // NOTE: Pinned logic is tricky here because checking count requires async repo call.
-        // We handle it in OnPinToggled.
-    }
-    
-    fun canUseCustomRecurrence(): Boolean {
-        val isPremium = subscriptionRepository.isPremiumSubscribed.value
-        return SubscriptionConfig.hasPremiumAccess(isPremium)
     }
     
     // Called before adding a tag
@@ -581,6 +593,21 @@ class CreateReminderViewModel(
                 "You have reached the maximum limit of ${SubscriptionConfig.Limits.PREMIUM_MAX_TAGS} tags."
             } else {
                 SubscriptionConfig.UpgradeMessages.TAGS
+            }
+            showPremiumDialog(message, isMaxLimit = isPremium)
+            return false
+        }
+        return true
+    }
+
+    // Called before adding a group
+    fun checkGroupLimit(): Boolean {
+         if (!canAddGroup()) {
+            val isPremium = subscriptionRepository.isPremiumSubscribed.value
+            val message = if (isPremium) {
+                "You have reached the maximum limit of ${SubscriptionConfig.Limits.PREMIUM_MAX_GROUPS} groups."
+            } else {
+                SubscriptionConfig.UpgradeMessages.GROUPS
             }
             showPremiumDialog(message, isMaxLimit = isPremium)
             return false
@@ -602,29 +629,16 @@ class CreateReminderViewModel(
         }
         return true
     }
-    
-    // Called before enabling custom recurrence
-    fun checkCustomRecurrenceAccess(): Boolean {
-        if (!canUseCustomRecurrence()) {
-            val isPremium = subscriptionRepository.isPremiumSubscribed.value
-            // Custom recurrence is a hallmark premium feature, generally no "max limit" unless specified so assumed purely access based.
-            // If premium users always have access, this only triggers for free users.
-            showPremiumDialog("Custom recurrence is a premium feature. Upgrade to create personalized repeat schedules!", isMaxLimit = false)
-            return false
-        }
-        return true
-    }
+
 
     private fun saveReminder() {
         viewModelScope.launch(Dispatchers.IO) {
             if (!validateState(state.value)) {
                 withContext(Dispatchers.Main) {
-                    _state.update { it.copy(isSaving = false) } // Ensure not saving
+                    _state.update { it.copy(isSaving = false) }
                 }
                 return@launch
             }
-
-            // Remove redundant title check (handled in validateState)
 
             val currentState = state.value
 
@@ -667,27 +681,15 @@ class CreateReminderViewModel(
                     icon = currentState.icon,
                     colorHex = currentState.colorHex,
                     isPinned = currentState.isPinned,
-                    groupId = currentState.selectedGroupId, // Fixed: use selectedGroupId
+                    groupId = currentState.selectedGroupId,
                     tagIds = currentState.selectedTags,
                     subtasks = currentState.subtasks,
                     targetRemindCount = currentState.recurrence?.occurrenceCount,
                     currentReminderCount = if (currentState.recurrence != null) 1 else null,
-                    createdAt = now, // In update, this should ideally be preserved, but for now using current time if editing logic assumes full replacement or we need to fetch original. Wait, we are creating a NEW object. 
-                    // CRITICAL: We need original createdAt if updating. But `loadReminder` doesn't store it in valid state except implied.
-                    // However, repository.updateReminder usually requires the whole object.
-                    // If we don't have createdAt in state, we might overwrite it. 
-                    // But for this task let's stick to the prompt's scope.
-                    // actually `editingReminderId` check handles update vs create.
+                    createdAt = now,
                     lastModified = now,
                     isSynced = false
                 )
-
-                // NOTE: Preserving createdAt would require storing it in State if we want to be perfect, 
-                // but user didn't ask for that fix specifically, just validation. 
-                // I will leave it as `now` for now to avoid scope creep, or just assume it's fine.
-                // Wait, if I overwrite createdAt with now, "Update" becomes "Create new version".
-                // I should probably fetch the original if I could, but `loadReminder` didn't save it.
-                // Proceeding with validation logic focus.
 
                 println("💾 Reminder object created:")
                 println("💾 - tagIds: ${reminder.tagIds}")
@@ -695,8 +697,6 @@ class CreateReminderViewModel(
                 println("💾 - subtasks: ${reminder.subtasks}")
 
                 if (editingReminderId != null) {
-                    // If updating, we might want to preserve createdAt. 
-                    // But `reminderRepository.updateReminder` might handle it or we might not care for now.
                      reminderRepository.updateReminder(reminder)
                 } else {
                     reminderRepository.createReminder(reminder)
@@ -709,8 +709,6 @@ class CreateReminderViewModel(
             } catch (e: Exception) {
                 println("❌ Error: ${e.message}")
                 // Generic error fallback if needed, but we have specific fields now.
-                // We can maybe put it in titleError or a general toast?
-                // For now, let's just log. 
                  withContext(Dispatchers.Main) {
                     _state.update { it.copy(isSaving = false) } // Just stop saving
                 }
@@ -818,10 +816,7 @@ class CreateReminderViewModel(
         }
 
         // 4. Reminder Time
-        // "remind me time/date should not exced duetime or deadline which ever is maximum"
-        // Also usually shouldn't be in the past for *new* reminders, but maybe user wants to log something?
-        // Standard: Reminder time <= Due Time (or Deadline).
-        // Let's implement: Reminder <= max(Due, Deadline)
+        // "remind me time/date should not exced duetime or deadline whichever is maximum"
         val reminderTime = state.getReminderTime()
         val maxTime = if (deadline != null && deadline > dueTime) deadline else dueTime
         

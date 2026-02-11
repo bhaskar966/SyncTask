@@ -10,7 +10,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,6 +67,7 @@ fun HistoryScreen(
             activeReminder?.let {
                 HistoryItem(
                    reminder = it,
+                   is24HourFormat = state.is24HourFormat,
                    onClick = {},
                    onLongClick = { _, _ -> }
                 )
@@ -121,6 +121,7 @@ fun HistoryScreen(
                              items(state.searchResults, key = { it.id }) { reminder ->
                                  HistoryItem(
                                      reminder = reminder,
+                                     is24HourFormat = state.is24HourFormat,
                                      onClick = { onNavigateToReminder(reminder.id) },
                                      onLongClick = { pos, size ->
                                          activeReminder = reminder
@@ -135,14 +136,14 @@ fun HistoryScreen(
                      }
                 } else {
                     // Tabs
-                    TabRow(
+                    SecondaryTabRow(
                         selectedTabIndex = state.selectedTab.index,
                         containerColor = MaterialTheme.colorScheme.surface,
                         contentColor = MaterialTheme.colorScheme.primary,
                         divider = {},
-                        indicator = { tabPositions ->
-                            TabRowDefaults.Indicator(
-                                modifier = Modifier.tabIndicatorOffset(tabPositions[state.selectedTab.index]),
+                        indicator = {
+                            TabRowDefaults.SecondaryIndicator(
+                                modifier = Modifier.tabIndicatorOffset(state.selectedTab.index),
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -179,6 +180,7 @@ fun HistoryScreen(
                                 items(reminders, key = { it.id }) { reminder ->
                                     HistoryItem(
                                         reminder = reminder,
+                                        is24HourFormat = state.is24HourFormat,
                                         onClick = { onNavigateToReminder(reminder.id) },
                                         onLongClick = { pos, size ->
                                              activeReminder = reminder

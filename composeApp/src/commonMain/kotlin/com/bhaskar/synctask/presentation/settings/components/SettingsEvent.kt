@@ -4,6 +4,7 @@ import com.bhaskar.synctask.domain.model.ThemeMode
 
 sealed class SettingsEvent {
     data class OnThemeChanged(val mode: ThemeMode) : SettingsEvent()
+    data class On24HourFormatToggled(val enabled: Boolean) : SettingsEvent()
     data class OnPushToggled(val enabled: Boolean) : SettingsEvent()
     data class OnEmailToggled(val enabled: Boolean) : SettingsEvent()
     data class OnBadgeToggled(val enabled: Boolean) : SettingsEvent()

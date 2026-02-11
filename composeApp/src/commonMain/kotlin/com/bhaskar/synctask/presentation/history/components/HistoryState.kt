@@ -9,7 +9,8 @@ data class HistoryState(
     val missedReminders: List<Reminder> = emptyList(),
     val dismissedReminders: List<Reminder> = emptyList(),
     val searchResults: List<Reminder> = emptyList(),
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val is24HourFormat: Boolean = false
 )
 
 enum class HistoryTab(val index: Int, val title: String) {

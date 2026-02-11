@@ -5,6 +5,7 @@ import com.bhaskar.synctask.data.fcm.FCMInitializer
 import com.bhaskar.synctask.data.services.RecurrenceService
 import com.bhaskar.synctask.data.repository.ReminderRepositoryImpl
 import com.bhaskar.synctask.data.repository.GroupRepositoryImpl
+import com.bhaskar.synctask.data.repository.OnboardingRepositoryImpl
 import com.bhaskar.synctask.data.repository.ProfileRepositoryImpl
 import com.bhaskar.synctask.data.repository.TagRepositoryImpl
 import com.bhaskar.synctask.data.sync.SyncService
@@ -12,6 +13,7 @@ import com.bhaskar.synctask.db.SyncTaskDatabase
 import com.bhaskar.synctask.domain.repository.ReminderRepository
 import com.bhaskar.synctask.domain.repository.SubscriptionRepository
 import com.bhaskar.synctask.data.repository.SubscriptionRepositoryImpl
+import com.bhaskar.synctask.data.repository.ThemeRepositoryImpl
 import com.bhaskar.synctask.data.services.RevenueCatService
 import com.bhaskar.synctask.presentation.list.ReminderListViewModel
 import com.bhaskar.synctask.presentation.create.CreateReminderViewModel
@@ -26,11 +28,14 @@ import kotlinx.coroutines.SupervisorJob
 import com.bhaskar.synctask.db.getSyncDatabase
 import com.bhaskar.synctask.domain.NotificationCalculator
 import com.bhaskar.synctask.domain.repository.GroupRepository
+import com.bhaskar.synctask.domain.repository.OnboardingRepository
 import com.bhaskar.synctask.domain.repository.ProfileRepository
 import com.bhaskar.synctask.domain.repository.TagRepository
+import com.bhaskar.synctask.domain.repository.ThemeRepository
 import com.bhaskar.synctask.presentation.auth.AuthViewModel
 import com.bhaskar.synctask.presentation.groups.GroupsViewModel
 import com.bhaskar.synctask.presentation.history.HistoryViewModel
+import com.bhaskar.synctask.presentation.onboarding.OnboardingViewModel
 
 expect val platformModule: Module
 
@@ -112,7 +117,10 @@ val dataModule = module {
     single<ProfileRepository> { ProfileRepositoryImpl() }
     
     // Theme Repository
-    single<com.bhaskar.synctask.domain.repository.ThemeRepository> { com.bhaskar.synctask.data.repository.ThemeRepositoryImpl(get()) }
+    single<ThemeRepository> { ThemeRepositoryImpl(get()) }
+
+    // Onboarding Repository
+    single<OnboardingRepository> { OnboardingRepositoryImpl(get()) }
 }
 
 val domainModule = module {
@@ -122,6 +130,7 @@ val domainModule = module {
     viewModelOf(::AuthViewModel)
     viewModelOf(::GroupsViewModel)
     viewModelOf(::HistoryViewModel)
+    viewModelOf(::OnboardingViewModel)
 }
 
 fun initKoin(config: (KoinApplication.() -> Unit)? = null) {

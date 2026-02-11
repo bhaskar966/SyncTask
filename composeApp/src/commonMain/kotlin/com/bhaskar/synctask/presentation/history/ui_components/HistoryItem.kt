@@ -30,12 +30,13 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.bhaskar.synctask.domain.model.Reminder
 import com.bhaskar.synctask.domain.model.ReminderStatus
-import com.bhaskar.synctask.presentation.list.ui_components.formatDateTime
+import com.bhaskar.synctask.presentation.utils.formatDateTime
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HistoryItem(
     reminder: Reminder,
+    is24HourFormat: Boolean,
     onClick: () -> Unit,
     onLongClick: (Offset, IntSize) -> Unit,
     modifier: Modifier = Modifier
@@ -108,13 +109,13 @@ fun HistoryItem(
                 // Date/Time
                 reminder.completedAt?.let { completedTime ->
                     Text(
-                        text = formatDateTime(completedTime),
+                        text = formatDateTime(completedTime, is24HourFormat = is24HourFormat),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha)
                     )
                 } ?: run {
                     Text(
-                        text = formatDateTime(reminder.dueTime),
+                        text = formatDateTime(reminder.dueTime, is24HourFormat = is24HourFormat),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha)
                     )

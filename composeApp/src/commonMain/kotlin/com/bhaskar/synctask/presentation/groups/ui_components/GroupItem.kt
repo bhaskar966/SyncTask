@@ -58,6 +58,7 @@ fun GroupItem(
     group: ReminderGroup,
     isExpanded: Boolean,
     reminders: List<Reminder>,
+    is24HourFormat: Boolean,
     onToggleExpand: () -> Unit,
     onEditGroup: () -> Unit,
     onReminderClick: (String) -> Unit,
@@ -152,6 +153,7 @@ fun GroupItem(
                     reminders.forEach { reminder ->
                         ReminderCard(
                             reminder = reminder,
+                            is24HourFormat = is24HourFormat,
                             onCheckedChange = { onReminderChecked(reminder, reminder.status != ReminderStatus.COMPLETED) },
                             onSubtaskChecked = { subtask, isChecked ->
                                 onSubtaskChecked(reminder, subtask, isChecked)

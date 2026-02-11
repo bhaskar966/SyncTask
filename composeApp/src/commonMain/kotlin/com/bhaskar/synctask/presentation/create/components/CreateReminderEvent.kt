@@ -80,6 +80,7 @@ sealed class CreateReminderEvent {
     // Premium Dialog
     data object OnDismissPremiumDialog : CreateReminderEvent()
     data object OnNavigateToSubscription : CreateReminderEvent()
+    data object OnConsumeNavigateToSubscription : CreateReminderEvent()
 
     data object OnSave : CreateReminderEvent()
 }

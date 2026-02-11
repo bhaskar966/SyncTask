@@ -5,5 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface ThemeRepository {
     val themeMode: Flow<ThemeMode>
+    val is24HourFormat: Flow<Boolean>
     suspend fun setThemeMode(mode: ThemeMode)
+    suspend fun set24HourFormat(is24Hour: Boolean)
 }

@@ -15,6 +15,7 @@ class ThemeRepositoryImpl(
 
     private object PreferencesKeys {
         val THEME_MODE = stringPreferencesKey("theme_mode")
+        val IS_24_HOUR_FORMAT = androidx.datastore.preferences.core.booleanPreferencesKey("is_24_hour_format")
     }
 
     override val themeMode: Flow<ThemeMode> = dataStore.data
@@ -27,9 +28,20 @@ class ThemeRepositoryImpl(
             }
         }
 
+    override val is24HourFormat: Flow<Boolean> = dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.IS_24_HOUR_FORMAT] ?: false // Default to 12h (false)
+        }
+
     override suspend fun setThemeMode(mode: ThemeMode) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_MODE] = mode.name
+        }
+    }
+
+    override suspend fun set24HourFormat(is24Hour: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.IS_24_HOUR_FORMAT] = is24Hour
         }
     }
 }

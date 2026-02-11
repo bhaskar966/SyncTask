@@ -87,6 +87,9 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
 
+            // Compose Res
+            implementation(libs.compose.components.resources)
+
             // Icons
             implementation(libs.material.icons.extended)
 
@@ -130,6 +133,13 @@ kotlin {
             // DataStore
             implementation(libs.androidx.datastore)
             implementation(libs.androidx.datastore.preferences)
+
+            // Compottie
+            implementation(libs.compottie)
+            implementation(libs.compottie.dot)
+
+            // Media Player
+            implementation(libs.chaintech.media.player)
         }
 
         commonTest.dependencies {

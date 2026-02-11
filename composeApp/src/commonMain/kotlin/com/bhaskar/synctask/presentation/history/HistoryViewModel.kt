@@ -27,7 +27,8 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalCoroutinesApi::class)
 class HistoryViewModel(
     private val reminderRepository: ReminderRepository,
-    private val authManager: AuthManager
+    private val authManager: AuthManager,
+    private val themeRepository: com.bhaskar.synctask.domain.repository.ThemeRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HistoryState())
@@ -45,8 +46,9 @@ class HistoryViewModel(
 
             combine(
                 allRemindersFlow,
-                _state.map { it.searchQuery }.distinctUntilChanged()
-            ) { reminders, query ->
+                _state.map { it.searchQuery }.distinctUntilChanged(),
+                themeRepository.is24HourFormat
+            ) { reminders, query, is24HourFormat ->
                 
                 // Categorize
                 val completed = reminders
@@ -76,14 +78,15 @@ class HistoryViewModel(
                     emptyList()
                 }
 
-                HistoryStateData(completed, missed, dismissed, searchResults)
-            }.collect { data ->
+                HistoryStateData(completed, missed, dismissed, searchResults) to is24HourFormat
+            }.collect { (data, is24HourFormat) ->
                 _state.update {
                     it.copy(
                         completedReminders = data.completed,
                         missedReminders = data.missed,
                         dismissedReminders = data.dismissed,
-                        searchResults = data.searchResults
+                        searchResults = data.searchResults,
+                        is24HourFormat = is24HourFormat
                     )
                 }
             }

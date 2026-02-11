@@ -1,3 +1,5 @@
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -58,6 +60,12 @@ fun BottomNavHost(
     val isReminders = currentDestination?.hierarchy?.any { it.route == BottomNavRoutes.RemindersScreen::class.qualifiedName } == true
     val isGroups = currentDestination?.hierarchy?.any { it.route == BottomNavRoutes.GroupsScreen::class.qualifiedName } == true
     
+    val routeOrder = listOf(
+        BottomNavRoutes.RemindersScreen::class.qualifiedName,
+        BottomNavRoutes.GroupsScreen::class.qualifiedName,
+        BottomNavRoutes.HistoryScreen::class.qualifiedName
+    )
+
     Scaffold(
         bottomBar = {
             BottomNavigationBar(
@@ -76,7 +84,43 @@ fun BottomNavHost(
         NavHost(
             navController = bottomNavController,
             startDestination = BottomNavRoutes.RemindersScreen,
-            modifier = Modifier.padding(paddingValues)
+            modifier = Modifier.padding(paddingValues),
+            enterTransition = {
+                val initialIndex = routeOrder.indexOf(initialState.destination.route)
+                val targetIndex = routeOrder.indexOf(targetState.destination.route)
+                if (initialIndex < targetIndex) {
+                    slideInHorizontally(initialOffsetX = { it })
+                } else {
+                    slideInHorizontally(initialOffsetX = { -it })
+                }
+            },
+            exitTransition = {
+                val initialIndex = routeOrder.indexOf(initialState.destination.route)
+                val targetIndex = routeOrder.indexOf(targetState.destination.route)
+                if (initialIndex < targetIndex) {
+                    slideOutHorizontally(targetOffsetX = { -it })
+                } else {
+                    slideOutHorizontally(targetOffsetX = { it })
+                }
+            },
+            popEnterTransition = {
+                val initialIndex = routeOrder.indexOf(initialState.destination.route)
+                val targetIndex = routeOrder.indexOf(targetState.destination.route)
+                if (initialIndex < targetIndex) {
+                    slideInHorizontally(initialOffsetX = { it })
+                } else {
+                    slideInHorizontally(initialOffsetX = { -it })
+                }
+            },
+            popExitTransition = {
+                val initialIndex = routeOrder.indexOf(initialState.destination.route)
+                val targetIndex = routeOrder.indexOf(targetState.destination.route)
+                if (initialIndex < targetIndex) {
+                    slideOutHorizontally(targetOffsetX = { -it })
+                } else {
+                    slideOutHorizontally(targetOffsetX = { it })
+                }
+            }
         ) {
             composable<BottomNavRoutes.RemindersScreen> {
                 ReminderListScreen(
@@ -138,6 +182,7 @@ fun BottomNavHost(
             onEvent = createReminderViewModel::onEvent,
             groups = groups,
             tags = tags,
+            onNavigateToSubscription = { mainNavController.navigate(MainRoutes.PaywallScreen) },
             onDismiss = { showSheet = false }
         )
     }

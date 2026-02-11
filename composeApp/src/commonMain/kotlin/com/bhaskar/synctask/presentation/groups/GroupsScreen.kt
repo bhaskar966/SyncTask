@@ -166,6 +166,7 @@ fun GroupsScreen(
                 // Show Reminder Card in overlay
                 ReminderCard(
                     reminder = activeReminder!!,
+                    is24HourFormat = state.is24HourFormat,
                     onCheckedChange = {},
                     onSubtaskChecked = { _, _ -> },
                     onClick = {},
@@ -177,6 +178,7 @@ fun GroupsScreen(
                     group = activeGroup!!,
                     isExpanded = false,
                     reminders = emptyList(), // Don't show reminders in context menu preview
+                    is24HourFormat = state.is24HourFormat,
                     onToggleExpand = {},
                     onEditGroup = {},
                     onReminderClick = {},
@@ -250,6 +252,7 @@ fun GroupsScreen(
                             UngroupedSection(
                                 reminders = state.ungroupedReminders,
                                 isExpanded = "ungrouped" in state.expandedGroupIds,
+                                is24HourFormat = state.is24HourFormat,
                                 onToggleExpand = {
                                     onEvent(GroupsEvent.ToggleGroupExpanded("ungrouped"))
                                 },
@@ -274,6 +277,7 @@ fun GroupsScreen(
                             group = group,
                             isExpanded = group.id in state.expandedGroupIds,
                             reminders = groupReminders,
+                            is24HourFormat = state.is24HourFormat,
                             onToggleExpand = {
                                 onEvent(GroupsEvent.ToggleGroupExpanded(group.id))
                             },
@@ -317,6 +321,7 @@ fun GroupsScreen(
 private fun UngroupedSection(
     reminders: List<Reminder>,
     isExpanded: Boolean,
+    is24HourFormat: Boolean,
     onToggleExpand: () -> Unit,
     onReminderClick: (String) -> Unit,
     onReminderChecked: (Reminder, Boolean) -> Unit,
@@ -393,6 +398,7 @@ private fun UngroupedSection(
                     reminders.forEach { reminder ->
                         ReminderCard(
                              reminder = reminder,
+                             is24HourFormat = is24HourFormat,
                              onCheckedChange = { onReminderChecked(reminder, reminder.status != ReminderStatus.COMPLETED) },
                              onSubtaskChecked = { subtask, isChecked -> onSubtaskChecked(reminder, subtask, isChecked) },
                              onClick = { onReminderClick(reminder.id) },

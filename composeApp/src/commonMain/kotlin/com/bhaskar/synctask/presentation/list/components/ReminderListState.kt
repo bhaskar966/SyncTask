@@ -19,5 +19,6 @@ data class ReminderListState(
     val expandedSections: Set<String> = setOf("pinned", "overdue", "today"),
     val showPremiumDialog: Boolean = false,
     val premiumDialogMessage: String = "",
-    val isMaxLimitReached: Boolean = false
+    val isMaxLimitReached: Boolean = false,
+    val is24HourFormat: Boolean = false
 )

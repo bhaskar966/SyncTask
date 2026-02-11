@@ -12,8 +12,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,6 +56,7 @@ fun CreateReminderDialog(
     onEvent: (CreateReminderEvent) -> Unit,
     groups: List<ReminderGroup>,
     tags: List<Tag>,
+    onNavigateToSubscription: () -> Unit,
     onDismiss: () -> Unit
 ) {
     Dialog(
@@ -78,6 +81,7 @@ fun CreateReminderDialog(
                 onEvent = onEvent,
                 groups = groups,
                 tags = tags,
+                onNavigateToSubscription = onNavigateToSubscription,
                 onDismiss = onDismiss
             )
         }
@@ -90,12 +94,21 @@ fun CreateReminderContent(
     onEvent: (CreateReminderEvent) -> Unit,
     groups: List<ReminderGroup>,
     tags: List<Tag>,
+    onNavigateToSubscription: () -> Unit,
     onDismiss: () -> Unit
 ) {
     var showRecurrenceModal by remember { mutableStateOf(false) }
     var showPriorityDialog by remember { mutableStateOf(false) }
     var showRemindMeDialog by remember { mutableStateOf(false) }
     var isSubtaskInputVisible by remember { mutableStateOf(false) }
+
+    // Navigation Effect
+    LaunchedEffect(state.navigateToSubscription) {
+        if (state.navigateToSubscription) {
+            onNavigateToSubscription()
+            onEvent(CreateReminderEvent.OnConsumeNavigateToSubscription)
+        }
+    }
 
     // --- DIALOGS ---
     if (state.showDatePicker) {
@@ -246,7 +259,7 @@ fun CreateReminderContent(
             }
         }
 
-        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
         // --- SCROLLABLE CONTENT ---
         Column(
@@ -504,9 +517,12 @@ fun MainInputCard(
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
-            
-            Divider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 4.dp))
-            
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+            )
+
             // Note Input
             TextField(
                 value = state.description,
@@ -821,7 +837,7 @@ fun TagSelectionPopup(
                                 .padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                             Icon(Icons.Default.Label, null, modifier = Modifier.size(16.dp))
+                             Icon(Icons.AutoMirrored.Filled.Label, null, modifier = Modifier.size(16.dp))
                              Spacer(Modifier.width(8.dp))
                              Text(tag.name, style = MaterialTheme.typography.bodyMedium)
                         }

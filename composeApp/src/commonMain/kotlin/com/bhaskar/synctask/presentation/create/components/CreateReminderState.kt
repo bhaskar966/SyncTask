@@ -94,7 +94,10 @@ data class CreateReminderState(
     val isMaxLimitReached: Boolean = false,
     // Navigation & Success
     val navigateToSubscription: Boolean = false,
-    val isSaveSuccess: Boolean = false
+    val isSaveSuccess: Boolean = false,
+    
+    // Subscription
+    val isPremium: Boolean = false
 ) {
     fun getDueTime(): Long {
         return if (hasSpecificTime) {

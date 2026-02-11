@@ -37,6 +37,9 @@ credentialManager = "1.5.0"
 googleid = "1.2.0"
 firebaseMessagingKtx = "25.0.1"
 purchases-kmp = "2.5.0+17.32.0"
+compottie = "2.0.2"
+mediaPlayer = "1.0.53"
+
 
 
 [libraries]
@@ -112,6 +115,13 @@ purchases-ui = { module = "com.revenuecat.purchases:purchases-kmp-ui", version.r
 # DataStore
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+
+# Compottie
+compottie = { module = "io.github.alexzhirkevich:compottie", version.ref = "compottie" }
+compottie-dot = { module = "io.github.alexzhirkevich:compottie-dot", version.ref = "compottie" }
+
+# Media Player
+chaintech-media-player = { module = "network.chaintech:compose-multiplatform-media-player", version.ref = "mediaPlayer" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

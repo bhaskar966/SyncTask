@@ -36,7 +36,8 @@ class GroupsViewModel(
     private val groupRepository: GroupRepository,
     private val reminderRepository: ReminderRepository,
     private val subscriptionRepository: SubscriptionRepository,
-    private val authManager: AuthManager
+    private val authManager: AuthManager,
+    private val themeRepository: com.bhaskar.synctask.domain.repository.ThemeRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(GroupsState())
@@ -68,13 +69,13 @@ class GroupsViewModel(
                 reminderRepository.getUngroupedReminders(uid)
             }
 
-            combine(
+            val combinedData = combine(
                 groupsWithRemindersFlow,
                 ungroupedFlow,
                 subscriptionRepository.isPremiumSubscribed,
                 _state.map { it.searchQuery }.distinctUntilChanged()
             ) { groupsWithReminders, ungrouped, isPremium, query ->
-                val filteredGroups = if (query.isBlank()) {
+                 val filteredGroups = if (query.isBlank()) {
                     groupsWithReminders
                 } else {
                     groupsWithReminders.mapNotNull { groupItem ->
@@ -100,15 +101,21 @@ class GroupsViewModel(
                 }
 
                 Triple(filteredGroups, filteredUngrouped, isPremium)
-            }.collect { (groups, ungrouped, isPremium) ->
+            }
+
+            combine(
+                combinedData,
+                themeRepository.is24HourFormat
+            ) { (groups, ungrouped, isPremium), is24HourFormat ->
                 _state.update {
                     it.copy(
                         groupsWithReminders = groups,
                         ungroupedReminders = ungrouped,
-                        isPremium = isPremium
+                        isPremium = isPremium,
+                        is24HourFormat = is24HourFormat
                     )
                 }
-            }
+            }.collect {}
         }
     }
 

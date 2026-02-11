@@ -62,6 +62,9 @@ import com.bhaskar.synctask.presentation.list.ui_components.SubtaskItem
 import com.bhaskar.synctask.presentation.theme.PredefinedIcons
 import kotlinx.datetime.TimeZone
 import com.bhaskar.synctask.presentation.utils.toLocalDateTime
+import com.bhaskar.synctask.presentation.utils.formatDateTime
+import com.bhaskar.synctask.presentation.utils.formatDuration
+import com.bhaskar.synctask.presentation.utils.formatRecurrence
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
@@ -81,6 +84,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 @Composable
 fun ReminderCard(
     reminder: Reminder,
+    is24HourFormat: Boolean,
     onCheckedChange: () -> Unit,
     onSubtaskChecked: (SubTask, Boolean) -> Unit,
     onClick: () -> Unit,
@@ -198,9 +202,9 @@ fun ReminderCard(
                         val displayText = if (isSnoozed && reminder.snoozeUntil != null) {
                             val duration = reminder.snoozeUntil - reminder.dueTime
                             val durationStr = formatDuration(duration)
-                            "${formatDateTime(reminder.snoozeUntil)} (snoozed for $durationStr)"
+                            "${formatDateTime(reminder.snoozeUntil, null, is24HourFormat)} (snoozed for $durationStr)"
                         } else {
-                            formatDateTime(reminder.dueTime, reminder.deadline)
+                            formatDateTime(reminder.dueTime, reminder.deadline, is24HourFormat)
                         }
 
                         Text(
@@ -240,82 +244,6 @@ fun ReminderCard(
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
-        }
-    }
-}
-
-// Helper functions
-fun formatDateTime(timestamp: Long, deadline: Long? = null): String {
-    val timeZone = TimeZone.currentSystemDefault()
-    val startInstant = Instant.fromEpochMilliseconds(timestamp)
-    val startDateTime = startInstant.toLocalDateTime(timeZone)
-    val now = Clock.System.now().toLocalDateTime(timeZone)
-
-    val startTimeStr = "${startDateTime.hour.toString().padStart(2, '0')}:${
-        startDateTime.minute.toString().padStart(2, '0')
-    }"
-
-    val datePart = when (startDateTime.date) {
-        now.date -> "Today"
-        now.date.plus(DatePeriod(days = 1)) -> "Tomorrow"
-        now.date.minus(DatePeriod(days = 1)) -> "Yesterday"
-        else -> "${
-            startDateTime.date.month.name.lowercase()
-                .replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
-        } ${startDateTime.date.day}"
-    }
-
-    if (deadline != null) {
-        val endInstant = Instant.fromEpochMilliseconds(deadline)
-        val endDateTime = endInstant.toLocalDateTime(timeZone)
-        val endTimeStr = "${endDateTime.hour.toString().padStart(2, '0')}:${
-            endDateTime.minute.toString().padStart(2, '0')
-        }"
-
-        return "$datePart $startTimeStr - $endTimeStr"
-    }
-
-    return "$datePart $startTimeStr"
-}
-
-fun formatDuration(millis: Long): String {
-    val seconds = millis / 1000
-    val minutes = seconds / 60
-    val hours = minutes / 60
-    val days = hours / 24
-
-    return when {
-        days > 0 -> "$days day${if (days > 1) "s" else ""}"
-        hours > 0 -> "$hours hour${if (hours > 1) "s" else ""}"
-        minutes > 0 -> "$minutes minute${if (minutes > 1) "s" else ""}"
-        else -> "less than a minute"
-    }
-}
-
-fun formatRecurrence(recurrence: RecurrenceRule): String {
-    return when (recurrence) {
-        is RecurrenceRule.Daily -> {
-            if (recurrence.interval == 1) "Daily"
-            else "Every ${recurrence.interval} days"
-        }
-
-        is RecurrenceRule.Weekly -> {
-            if (recurrence.interval == 1) "Weekly"
-            else "Every ${recurrence.interval} weeks"
-        }
-
-        is RecurrenceRule.Monthly -> {
-            if (recurrence.interval == 1) "Monthly"
-            else "Every ${recurrence.interval} months"
-        }
-
-        is RecurrenceRule.Yearly -> {
-            if (recurrence.interval == 1) "Yearly"
-            else "Every ${recurrence.interval} years"
-        }
-
-        is RecurrenceRule.CustomDays -> {
-            "Every ${recurrence.interval} days"
         }
     }
 }

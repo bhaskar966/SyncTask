@@ -67,6 +67,7 @@ fun ReminderListScreen(
             // Main Content List
             ReminderSectionsList(
                 state = reminderListState,
+                is24HourFormat = reminderListState.is24HourFormat, // Pass format
                 onToggleSection = { sectionId ->
                     onReminderScreenEvent(ReminderListEvent.OnToggleSection(sectionId))
                 },
@@ -134,6 +135,7 @@ fun ReminderListScreen(
                 if (activeReminder != null) {
                     ReminderCard(
                         reminder = activeReminder!!,
+                        is24HourFormat = reminderListState.is24HourFormat, // Pass format
                         onCheckedChange = {}, // Disable interaction in overlay
                         onSubtaskChecked = { _, _ -> },
                         onClick = {},
@@ -165,6 +167,7 @@ fun ReminderListScreen(
 @Composable
 private fun ReminderSectionsList(
     state: ReminderListState,
+    is24HourFormat: Boolean,
     onToggleSection: (String) -> Unit,
     onReminderClick: (String) -> Unit,
     onCompleteReminder: (String) -> Unit,
@@ -200,6 +203,7 @@ private fun ReminderSectionsList(
                 ) { reminder ->
                     ReminderCard(
                         reminder = reminder,
+                        is24HourFormat = is24HourFormat,
                         onCheckedChange = { onCompleteReminder(reminder.id) },
                         onSubtaskChecked = { subtask, isChecked -> onSubtaskChecked(reminder.id, subtask.id, isChecked) },
                         onClick = { onReminderClick(reminder.id) },
@@ -239,6 +243,7 @@ private fun ReminderSectionsList(
                 ) { reminder ->
                     ReminderCard(
                         reminder = reminder,
+                        is24HourFormat = is24HourFormat,
                         onCheckedChange = { onCompleteReminder(reminder.id) },
                         onSubtaskChecked = { subtask, isChecked -> onSubtaskChecked(reminder.id, subtask.id, isChecked) },
                         onClick = { onReminderClick(reminder.id) },
@@ -268,6 +273,7 @@ private fun ReminderSectionsList(
                 ) { reminder ->
                     ReminderCard(
                         reminder = reminder,
+                        is24HourFormat = is24HourFormat,
                         onCheckedChange = { onCompleteReminder(reminder.id) },
                         onSubtaskChecked = { subtask, isChecked -> onSubtaskChecked(reminder.id, subtask.id, isChecked) },
                         onClick = { onReminderClick(reminder.id) },
@@ -297,6 +303,7 @@ private fun ReminderSectionsList(
                 ) { reminder ->
                     ReminderCard(
                         reminder = reminder,
+                        is24HourFormat = is24HourFormat,
                         onCheckedChange = { onCompleteReminder(reminder.id) },
                         onSubtaskChecked = { subtask, isChecked -> onSubtaskChecked(reminder.id, subtask.id, isChecked) },
                         onClick = { onReminderClick(reminder.id) },
@@ -326,6 +333,7 @@ private fun ReminderSectionsList(
                 ) { reminder ->
                     ReminderCard(
                         reminder = reminder,
+                        is24HourFormat = is24HourFormat,
                         onCheckedChange = { onCompleteReminder(reminder.id) },
                         onSubtaskChecked = { subtask, isChecked -> onSubtaskChecked(reminder.id, subtask.id, isChecked) },
                         onClick = { onReminderClick(reminder.id) },
@@ -355,6 +363,7 @@ private fun ReminderSectionsList(
                 ) { reminder ->
                     ReminderCard(
                         reminder = reminder,
+                        is24HourFormat = is24HourFormat,
                         onCheckedChange = { onCompleteReminder(reminder.id) },
                         onSubtaskChecked = { subtask, isChecked -> onSubtaskChecked(reminder.id, subtask.id, isChecked) },
                         onClick = { onReminderClick(reminder.id) },

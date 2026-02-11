@@ -108,6 +108,11 @@ class SettingsViewModel(
                 _state.update { it.copy(themeMode = mode) }
             }
         }
+        viewModelScope.launch {
+            themeRepository.is24HourFormat.collect { is24Hour ->
+                _state.update { it.copy(is24HourFormat = is24Hour) }
+            }
+        }
     }
 
     fun updatePushPermissionState(isGranted: Boolean) {
@@ -119,6 +124,11 @@ class SettingsViewModel(
             is SettingsEvent.OnThemeChanged -> {
                 viewModelScope.launch {
                     themeRepository.setThemeMode(event.mode)
+                }
+            }
+            is SettingsEvent.On24HourFormatToggled -> {
+                viewModelScope.launch {
+                    themeRepository.set24HourFormat(event.enabled)
                 }
             }
             is SettingsEvent.OnPushToggled -> {

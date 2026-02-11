@@ -30,7 +30,8 @@ data class GroupsState(
     val groupsWithReminders: List<GroupWithReminders> = emptyList(),
     val ungroupedReminders: List<com.bhaskar.synctask.domain.model.Reminder> = emptyList(),
     val isPremium: Boolean = false,
-    val searchQuery: String = ""
+    val searchQuery: String = "",
+    val is24HourFormat: Boolean = false
 )
 
 data class GroupWithReminders(
