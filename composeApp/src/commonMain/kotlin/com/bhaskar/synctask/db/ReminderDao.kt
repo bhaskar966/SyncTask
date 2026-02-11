@@ -57,15 +57,15 @@ interface ReminderDao {
     suspend fun getActiveReminderCount(userId: String): Int
 
     //  Get ungrouped reminders
-    @Query("SELECT * FROM ReminderEntity WHERE userId = :userId AND (groupId IS NULL OR groupId = '') AND status != 'COMPLETED' AND status != 'DISMISSED' ORDER BY dueTime ASC")
+    @Query("SELECT * FROM ReminderEntity WHERE userId = :userId AND (groupId IS NULL OR groupId = '') AND (status = 'ACTIVE' OR status = 'SNOOZED') ORDER BY dueTime ASC")
     fun getUngroupedReminders(userId: String): Flow<List<ReminderEntity>>
 
     // Get reminder count by group
-    @Query("SELECT COUNT(*) FROM ReminderEntity WHERE groupId = :groupId AND status != 'COMPLETED' AND status != 'DISMISSED'")
+    @Query("SELECT COUNT(*) FROM ReminderEntity WHERE groupId = :groupId AND (status = 'ACTIVE' OR status = 'SNOOZED')")
     suspend fun getReminderCountByGroup(groupId: String): Int
 
     // Get pinned reminder count
-    @Query("SELECT COUNT(*) FROM ReminderEntity WHERE userId = :userId AND isPinned = 1 AND status != 'COMPLETED' AND status != 'DISMISSED'")
+    @Query("SELECT COUNT(*) FROM ReminderEntity WHERE userId = :userId AND isPinned = 1 AND (status = 'ACTIVE' OR status = 'SNOOZED')")
     suspend fun getPinnedReminderCount(userId: String): Int
 
     // Unassign reminders from deleted group
