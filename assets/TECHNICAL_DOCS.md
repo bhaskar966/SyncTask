@@ -1,14 +1,12 @@
-# 🛠 Sync Task: Technical Deep Dive
+# 🛠 SyncTask: Technical Deep Dive
 
-> **Engineering the impossible: True cross-device sync without a custom backend server.**
-
-This document provides a detailed look into the architecture, technical decisions, and implementation specifics of **Sync Task**, built for [RevenueCat Shipyard](https://www.shipyard.fyi/).
+This document provides a detailed look into the architecture, technical decisions, and implementation specifics of **SyncTask**, built for [RevenueCat Shipyard](https://www.shipyard.fyi/).
 
 ---
 
 ## 🏗 Architecture Overview
 
-Sync Task follows a **Local-First, Cloud-Synced** architecture. The app works 100% offline, relying on a local Room database as updates are propagated asynchronously to Firestore.
+SyncTask follows a **Local-First, Cloud-Synced** architecture. The app works 100% offline, relying on a local Room database as updates are propagated asynchronously to Firestore.
 
 ### High-Level Components
 
@@ -133,7 +131,7 @@ exports.onReminderStatusChanged = functions.firestore
 To allow custom snoozing without opening the app, I used **Transparent Activities**.
 *   **Style:** `Theme.Transparent` (No title, transparent background, dim background).
 *   **Trigger:** PendingIntent from Notification Action.
-*   **Benefit:** Users stay in their context (Lock screen or other app) while interacting with Sync Task.
+*   **Benefit:** Users stay in their context (Lock screen or other app) while interacting with SyncTask.
 
 ### iOS Time-Sensitive Notifications ⏰
 I utilise iOS 15+ Time Sensitive interruptions.
