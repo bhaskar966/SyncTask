@@ -2,18 +2,33 @@
 
 <div align="center">
 
-**Built for [RevenueCat Shipyard Hackathon 2026](https://www.revenuecat.com/shipyard)**
+**Built for [RevenueCat Shipyard](https://www.shipyard.fyi/)**
 
 *"A beautiful fully functional reminders app that works properly on both iOS and Android."* - Sam Beckman's Brief
+
+[![Watch the Demo](https://img.youtube.com/vi/XfObFwvGFFU/0.jpg)](https://www.youtube.com/watch?v=XfObFwvGFFU)
+
+[![Get it on Google Play](https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png)](https://play.google.com/store/apps/details?id=com.bhaskar.synctask)
+*(Closed Testing - Invitation Required)*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.3.0-purple.svg)](https://kotlinlang.org)
 [![Compose Multiplatform](https://img.shields.io/badge/Compose_Multiplatform-1.10.0-blue.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
 [![RevenueCat](https://img.shields.io/badge/RevenueCat-Shipyard-tomato.svg)](https://www.revenuecat.com)
 
-[Features](#-features-meeting-the-brief) • [Tech Stack](#-tech-stack) • [Architecture](#-architecture) • [Setup Guide](#-setup-guide) • [Hackathon Story](#-the-hackathon-story)
+[Features](#-features-meeting-the-brief) • [Hackathon Story](#-the-hackathon-story) • [Tech Stack](#-tech-stack) • [Setup Guide](#-setup-guide)
+
+[![Technical Deep Dive](https://img.shields.io/badge/Read-Technical_Docs-black?style=for-the-badge&logo=github)](assets/TECHNICAL_DOCS.md)
 
 </div>
+
+---
+
+## 💡 Inspiration
+
+We've all been there: you dismiss a reminder on your phone, but it stays on your tablet. Most reminder apps claim to sync, but they only work when the app is open—a fundamental flaw in a multi-device world.
+
+**Sync Task** was born from this frustration. When Sam Beckman proposed building "powerful reminders with cross-device sync" for the RevenueCat Shipyard Hackathon, we saw an opportunity to solve this problem the right way—using **Firebase Cloud Functions** to wake sleeping apps and maintain perfect synchronization, even when apps are completely closed.
 
 ---
 
@@ -25,7 +40,7 @@
 3.  **Powerful Recurrence:** "Every 3 days", "Every 6 months".
 4.  **Beautiful Design:** Must look great and feel smooth on both iOS and Android.
 
-**The Solution:** **Sync Task** creates a seamless bridge between your devices using a "Local-First, Cloud-Synced" architecture.
+**The Solution:** A **Local-First, Cloud-Synced** architecture that doesn't just sync data, but syncs *state*.
 
 | Feature                   | How Sync Task Solves It                                                                                                                                                    |
 |:--------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -92,43 +107,20 @@
 
 ---
 
-## 🏗 Architecture Diagram
+## 🏗 Architecture & Logic
 
-```mermaid
-graph TD
-    subgraph "Device A (Android 1)"
-        UI_A[Compose UI] <--> VM_A[ViewModel]
-        VM_A <--> Repo_A[Repository]
-        Repo_A <--> Local_DB_A[(Room DB)]
-        Repo_A <--> Cloud_A[Firestore SDK]
-    end
+**Sync Task** is built on a "Local-First" philosophy. Updates commit to the local database immediately for instant UI responsiveness, then sync to the cloud in the background.
 
-    subgraph "Backend"
-        Firestore[(Firestore DB)]
-        Functions[Cloud Functions]
-        FCM[Firebase Cloud Messaging]
-    end
+> **Want the deep dive?** Check out our [Technical Documentation](assets/TECHNICAL_DOCS.md) for full architecture diagrams, conflict resolution strategies, and code snippets.
 
-    subgraph "Device B (Android 2)"
-        Repo_B[Repository] <--> Local_DB_B[(Room DB)]
-        Repo_B <--> Cloud_B[Firestore SDK]
-    end
+### The Sync Flow (Simplified)
+1.  **User Action:** You complete a task on your Android phone.
+2.  **Local Commit:** Room DB updates, UI reflects change instantly.
+3.  **Cloud Sync:** The app pushes the change to Firestore.
+4.  **Cloud Function:** A Node.js function detects the change and sends a silent **FCM Data Message** to your iPad.
+5.  **Remote Wake-Up:** The iPad (even if closed) wakes up, fetches the update, and cancels the notification.
 
-    subgraph "Device C (iOS)"
-        Repo_C[Repository] <--> Cloud_C[Firestore SDK]
-    end
-
-    %% Sync Flow (Android to Android)
-    Local_DB_A -->|1. Sync Up| Firestore
-    Firestore -->|2. Trigger| Functions
-    Functions -->|3. Push Silent Notif| FCM
-    FCM -->|4. Wake Up| Repo_B
-    Repo_B -->|5. Fetch| Firestore
-    Repo_B -->|6. Update| Local_DB_B
-    
-    %% Sync Flow (iOS - Foreground)
-    Firestore -.->|7. Realtime Updates| Repo_C
-```
+No more "ghost notifications" on your other devices. 👻🚫
 
 ---
 
@@ -143,8 +135,8 @@ graph TD
 
 ### 1. Clone & Configure
 ```bash
-git clone https://github.com/yourusername/sync-task.git
-cd sync-task
+git clone https://github.com/bhaskar966/SyncTask.git
+cd SyncTask
 ```
 
 ### 2. Secrets Management
@@ -225,7 +217,27 @@ Existing solutions were either:
 *   **Platform Locked:** Apple Reminders is great, but iOS only. Android apps don't sync to iPad.
 *   **Broken Sync:** "Why is my old phone buzzing for a task I finished an hour ago?"
 
-**Sync Task** was built to answer these specific pain points. By combining the power of **Kotlin Multiplatform** for shared logic with **Platform-Specific** capabilities (like Android Overlays and iOS Time Sensitive Notifications), we believe we've hit the sweet spot.
+## 🧠 What We Learned
+
+### 1. The Real Cost of Cross-Platform
+We learned that "Write Once, Run Everywhere" is a myth. The winning strategy is **"Share Logic, Respect Platform."** We share 100% of our business logic (ViewModels, Repositories), but we lean heavily into platform strengths: **Android Overlays** for interaction and **iOS Time Sensitive Notifications** for urgency.
+
+### 2. Distributed Systems are Hard
+Building reliable sync taught us about conflict resolution (Last-Write-Wins), clock skew, and why "eventual consistency" is a UI challenge as much as a backend one.
+
+### 3. Constraints Breed Creativity
+Without a paid Apple Developer Account, we couldn't use background APNs. Instead of giving up, we architected a robust **Foreground Sync** for iOS that feels instant, ensuring the app is still fully functional and impressive.
+
+---
+
+## 🔮 What's Next?
+
+The Hackathon is just the beginning. 
+*   **Desktop Apps:** Compose Multiplatform makes Windows/Mac/Linux support a natural next step.
+*   **Widgets:** Home screen widgets for quick capture.
+*   **Collaborative Lists:** Shared grocery lists with real-time sync.
+
+---
 
 **Enjoy the sync!** 🔄
 
@@ -233,8 +245,8 @@ Existing solutions were either:
 
 <div align="center">
 
-**[View Demo Video](#)** • **[Download APK](#)**
+**[View Demo Video](https://youtu.be/XfObFwvGFFU?si=5Ej5A8Jl1oPMk5NS)** • **[Download APP](https://play.google.com/store/apps/details?id=com.bhaskar.synctask)** (Invite Only)
 
-Built with ❤️ by [Your Name]
+Built with ❤️ by [Bhaskar Dey](https://github.com/bhaskar966)
 
 </div>
