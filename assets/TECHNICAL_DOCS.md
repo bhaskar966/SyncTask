@@ -13,7 +13,7 @@ Sync Task follows a **Local-First, Cloud-Synced** architecture. The app works 10
 ### High-Level Components
 
 *   **Presentation Layer (UI):** 100% **Compose Multiplatform**. One UI codebase for Android and iOS.
-*   **Domain Layer:** Pure Kotlin. Contains `UseCases`, `Repository Interfaces`, and shared logic like `NotificationCalculator` and `RecurrenceService`.
+*   **Domain Layer:** Pure Kotlin. Contains `Repository Interfaces`, and shared logic like `NotificationCalculator` and `RecurrenceService`.
 *   **Data Layer:**
     *   **Local:** **Room KMP** (SQLite) - The Single Source of Truth for the UI.
     *   **Remote:** **Firestore** - Acts as the message broker and long-term storage.
@@ -64,25 +64,25 @@ The core challenge was syncing data even when apps are closed.
     *   `id`: UUID
     *   `title`, `description`: Strings
     *   `dueTime`: Timestamp
-    *   `status`: 'active' | 'completed' | 'deleted'
+    *   `status`: 'active' | 'completed' | 'deleted' | 'snoozed'
     *   `lastModified`: Long (Timestamp for Conflict Resolution)
     *   `recurrence`: JSON Map (Complex rules)
 
 ### 2. Conflict Resolution (Last-Write-Wins)
-We avoid complex merging by using a simple LWW strategy.
+I avoid complex merging by using a simple LWW strategy.
 *   Every write to the local DB updates the `lastModified` timestamp.
 *   When fetching from Cloud:
     *   `if (cloud.lastModified > local.lastModified) { overwriteLocal() }`
     *   `else { ignoreCloud() }`
 
-### 3. Dead App Synchronization (Android)
-We solved the "Dead App" problem using Firebase Cloud Functions + FCM Data Messages.
+### 3. Dead App Synchronisation (Android)
+Solved the "Dead App" problem using Firebase Cloud Functions + FCM Data Messages.
 
 **The Workflow:**
 1.  User completes a task on Device A.
 2.  Firestore document updates.
 3.  **Cloud Function** `onReminderStatusChanged` triggers.
-4.  Function loads all user's FCM tokens from `users/{uid}/fcmTokens`.
+4.  Function loads all users' FCM tokens from `users/{uid}/fcmTokens`.
 5.  Sends a **High Priority Data Message** (`content_available: true`).
 6.  **Device B (Android)** receives message in `FCMService` (even if app is killed).
 7.  `FCMService` triggers `ReminderRepository.sync()`.
@@ -91,7 +91,7 @@ We solved the "Dead App" problem using Firebase Cloud Functions + FCM Data Messa
 10. **Result:** The user never gets a notification for a task they already finished.
 
 ### 4. iOS Sync Strategy
-Without a paid Apple Developer Account (required for background APNs), we fallback to a robust **Foreground Sync**:
+Without a paid Apple Developer Account (required for background APNs), the app falls back to a robust **Foreground Sync**:
 *   `Firestore` listeners are attached immediately on app launch.
 *   Data syncs in < 500ms.
 *   Local notifications allow the user to see reminders even if offline.
@@ -100,7 +100,7 @@ Without a paid Apple Developer Account (required for background APNs), we fallba
 
 ## 🤖 Cloud Functions Logic
 
-We use Node.js functions to act as our "Backend".
+Used Node.js functions to act as our "Backend".
 
 ```javascript
 // index.js (Simplified)
@@ -130,13 +130,13 @@ exports.onReminderStatusChanged = functions.firestore
 ## 📱 Platform Specifics
 
 ### Android Overlays 🎨
-To allow custom snoozing without opening the app, we use **Transparent Activities**.
+To allow custom snoozing without opening the app, I used **Transparent Activities**.
 *   **Style:** `Theme.Transparent` (No title, transparent background, dim background).
 *   **Trigger:** PendingIntent from Notification Action.
 *   **Benefit:** Users stay in their context (Lock screen or other app) while interacting with Sync Task.
 
 ### iOS Time-Sensitive Notifications ⏰
-We utilize iOS 15+ Time Sensitive interruptions.
+I utilise iOS 15+ Time Sensitive interruptions.
 *   **Entitlement:** Added to ensure reminders break through Focus Modes (when permitted).
 *   **Implementation:** `UNNotificationInterruptionLevel.timeSensitive`.
 
@@ -148,7 +148,7 @@ We utilize iOS 15+ Time Sensitive interruptions.
 
 *   **Android:** Fully integrated with Google Play Billing.
 *   **iOS:** Uses a "ReadOnly" mode.
-    *   Since we cannot configure products without a paid account, the iOS app checks for entitlements but handles purchase errors gracefully.
+    *   Since I cannot configure products without a paid account, the iOS app checks for entitlements but handles purchase errors gracefully.
     *   **Cross-Platform Sync:** Users who purchase on Android can "Restore Purchases" or simply log in on iOS to unlock features, thanks to RevenueCat's user management.
 
 ---
@@ -205,7 +205,6 @@ service cloud.firestore {
   }
 }
 ```
-
 ---
 
 ## 🔮 Future Engineering
