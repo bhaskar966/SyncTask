@@ -12,7 +12,7 @@
 
 *(Closed Testing - Invitation Required)*
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/license/apache-2-0)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.3.0-purple.svg)](https://kotlinlang.org)
 [![Compose Multiplatform](https://img.shields.io/badge/Compose_Multiplatform-1.10.0-blue.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
 [![RevenueCat](https://img.shields.io/badge/RevenueCat-Shipyard-tomato.svg)](https://www.shipyard.fyi/)
