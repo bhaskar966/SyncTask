@@ -15,9 +15,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.3.0-purple.svg)](https://kotlinlang.org)
 [![Compose Multiplatform](https://img.shields.io/badge/Compose_Multiplatform-1.10.0-blue.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
-[![RevenueCat](https://img.shields.io/badge/RevenueCat-Shipyard-tomato.svg)](https://www.revenuecat.com)
+[![RevenueCat](https://img.shields.io/badge/RevenueCat-Shipyard-tomato.svg)](https://www.shipyard.fyi/)
 
-[Features](#-features-meeting-the-brief) • [Hackathon Story](#-the-hackathon-story) • [Tech Stack](#-tech-stack) • [Setup Guide](#-setup-guide)
+[Features](#-features-meeting-the-brief) • [Hackathon Story](#-hackathon-story-why-i-built-this) • [Tech Stack](#-tech-stack) • [Setup Guide](#-setup-guide)
 
 [![Technical Deep Dive](https://img.shields.io/badge/Read-Technical_Docs-black?style=for-the-badge&logo=github)](assets/TECHNICAL_DOCS.md)
 
@@ -59,27 +59,24 @@ I've all been there: you dismiss a reminder on your phone, but it stays on your 
 *   **Background Sync:** If you complete a task on Android, your iPad (sitting in a draIr) wakes up silently, updates its local DB, and cancels the pending notification. **No more double notifications.**
 *   **Conflict Resolution:** Last-Write-Wins strategy based on high-precision timestamps.
 
-### 2. PoIrful Notification Actions
-*   **Android:**
-    *   **Custom Snooze Overlay:** A transparent activity pops up over your lock screen/app to let you type a specific snooze duration.
-    *   **Reschedule:** Pick a new date/time instantly.
-*   **iOS:**
-    *   **Native Actions:** Long-press to Snooze (1h, Tomorrow) or Complete.
-    *   **Time Sensitive:** Critical reminders break through Focus modes.
+### 2. Powerful Notification Actions
+ *   **Custom Snooze Overlay:** A transparent activity pops up over your screen/app to let you type a specific snooze duration.
+ *   **Reschedule:** Pick a new date/time instantly.
 
 ### 3. Advanced Organisation (Free & Premium)
 *   **Free:** 15 active reminders, 3 groups, basic recurrence.
 *   **Premium ($3.99/mo):**
-    *   Unlimited reminders & groups.
+    *   1000 active reminders & 500 groups.
     *   **Advanced Recurrence:** "Every 3rd Friday", "Every 2 days ending in December".
     *   **Subtasks:** Break down "Publish Video" into "Script", "Film", "Edit".
-    *   **Tags:** Color-coded organization.
+    *   **Tags:** 100 Tags.
+    *   **Color-coded organization**
 
 ---
 
 ## 🛠 Tech Stack
 
-**Sync Task** is a showcase of modern **Kotlin Multiplatform (KMP)** development.
+**SyncTask** is a showcase of modern **Kotlin Multiplatform (KMP)** development.
 
 ### Shared Core (CommonMain)
 *   **Language:** Kotlin 2.3.0
@@ -110,7 +107,7 @@ I've all been there: you dismiss a reminder on your phone, but it stays on your 
 
 ## 🏗 Architecture & Logic
 
-**Sync Task** is built on a "Local-First" philosophy. Updates commit to the local database immediately for instant UI responsiveness, then sync to the cloud in the background.
+**SyncTask** is built on a "Local-First" philosophy. Updates commit to the local database immediately for instant UI responsiveness, then sync to the cloud in the background.
 
 > **Want the deep dive?** Check out [Technical Documentation](assets/TECHNICAL_DOCS.md) for full architecture diagrams, conflict resolution strategies, and code snippets.
 
@@ -122,6 +119,7 @@ I've all been there: you dismiss a reminder on your phone, but it stays on your 
 5.  **Remote Wake-Up:** The iPad (even if closed) wakes up, fetches the update, and cancels the notification.
 
 No more "ghost notifications" on your other devices. 👻🚫
+> Unless the device is offline.
 
 ---
 
@@ -190,7 +188,7 @@ Since this is a Kotlin Multiplatform project with native iOS dependencies, you n
 
 I use **RevenueCat** to provide the "Premium" experience seamlessly across platforms.
 
-*   **Entitlements:** `premium_access` (Mapped to Play Store & App Store products).
+*   **Entitlements:** `premium_playstore` (Mapped to Play Store).
 *   **Offerings:** Configured dynamically in the RevenueCat dashboard.
 *   **Implementation:**
     *   `SubscriptionRepository` observes `Purchases.shared.customerInfo`.
